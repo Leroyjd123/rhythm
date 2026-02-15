@@ -1,5 +1,5 @@
-import { getStorage, setStorage } from '../shared/storage.js';
-import { logInfo, logError } from '../shared/logger.js';
+import { getStorage, setStorage } from '/src/shared/storage.js';
+import { logInfo, logError } from '/src/shared/logger.js';
 
 /**
  * Main entry point for the reminder engine.
@@ -211,9 +211,13 @@ async function dispatchNotification(ids) {
     ],
     requireInteraction: true
   });
+  // Auto-dismiss after 5 minutes
+  setTimeout(() => {
+    chrome.notifications.clear(notificationId);
+  }, 5 * 60 * 1000);
 }
 
-// Global listener for notification buttons (moved from inside dispatch)
+// Global listener for notification buttons
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
   if (notifId.startsWith('ids:')) {
     const parts = notifId.split(':');
@@ -236,12 +240,6 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
     chrome.notifications.clear(notifId);
   }
 });
-
-  // Auto-dismiss after 5 minutes
-  setTimeout(() => {
-    chrome.notifications.clear(notificationId);
-  }, 5 * 60 * 1000);
-}
 
 /**
  * Helper: Calculates the next timestamp for a fixed time of day.

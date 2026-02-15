@@ -1,13 +1,24 @@
-import { getStorage, updateReminder, setStorage } from '../shared/storage.js';
+import { getStorage, updateReminder, setStorage } from '/src/shared/storage.js';
 
 async function init() {
-  const storage = await getStorage();
-  if (!storage) return;
+  console.log('Popup initializing...');
+  try {
+    const storage = await getStorage();
+    if (!storage) {
+      console.warn('Storage not found, extension might not be initialized');
+      document.body.innerHTML = '<div style="padding:20px; text-align:center;">Extension initializing... Please wait a moment and reopen.</div>';
+      return;
+    }
 
-  renderDashboard(storage);
-  initFocusMode(storage);
-  initNotes(storage);
-  initAdvanced(storage);
+    renderDashboard(storage);
+    initFocusMode(storage);
+    initNotes(storage);
+    initAdvanced(storage);
+    console.log('Popup initialized successfully');
+  } catch (err) {
+    console.error('Failed to initialize popup:', err);
+    document.body.innerHTML = '<div style="padding:20px; color:red;">Error loading extension data. Please restart Chrome or reload the extension.</div>';
+  }
 }
 
 function initAdvanced(storage) {
@@ -190,12 +201,22 @@ const ICONS = {
 
 function renderDashboard(storage) {
   const dashboard = document.getElementById('dashboard');
+  if (!dashboard) return;
   dashboard.innerHTML = '';
 
   const reminderGroups = {
     wellbeing: ['water', 'posture', 'break', 'eye', 'stand', 'stretch', 'breathing'],
     work: ['workStart', 'workLunch', 'workEnd']
   };
+
+  // Render Wellbeing Reminders
+  reminderGroups.wellbeing.forEach(id => {
+    const reminder = storage.reminders[id];
+    const stats = storage.stats[id];
+    if (reminder) {
+      dashboard.appendChild(createReminderCard(reminder, stats));
+    }
+  });
 
   // Render Work Reminders
   reminderGroups.work.forEach(id => {
@@ -259,7 +280,6 @@ function createReminderCard(reminder, stats) {
   header.querySelector('input').addEventListener('change', async (e) => {
     const enabled = e.target.checked;
     await updateReminder(reminder.id, { enabled });
-    // In chrome extensions, we can call background script via chrome.runtime.sendMessage
     chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled } });
   });
 
@@ -271,17 +291,19 @@ function createReminderCard(reminder, stats) {
 
   // Interval Validation Listener
   const intervalInput = expanded.querySelector('.interval-input');
-  intervalInput.addEventListener('change', async (e) => {
-    let value = parseInt(e.target.value);
-    if (isNaN(value) || value < 5) {
-      value = 5;
-      e.target.value = 5;
-    }
-    await updateReminder(reminder.id, { intervalMinutes: value });
-    if (reminder.enabled) {
-      chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, intervalMinutes: value } });
-    }
-  });
+  if (intervalInput) {
+    intervalInput.addEventListener('change', async (e) => {
+      let value = parseInt(e.target.value);
+      if (isNaN(value) || value < 5) {
+        value = 5;
+        e.target.value = 5;
+      }
+      await updateReminder(reminder.id, { intervalMinutes: value });
+      if (reminder.enabled) {
+        chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, intervalMinutes: value } });
+      }
+    });
+  }
 
   // Time Input Listener
   const timeInput = expanded.querySelector('.time-input');
@@ -315,16 +337,19 @@ function createReminderCard(reminder, stats) {
   });
 
   // Log Button
-  expanded.querySelector('.log-btn').addEventListener('click', async () => {
-    const storage = await getStorage();
-    storage.stats[reminder.id].todayCount++;
-    await setStorage(storage);
-    renderDashboard(storage); // Re-render
-    
-    if (storage.stats[reminder.id].todayCount >= (reminder.metadata.dailyTarget || 0)) {
-      triggerConfetti();
-    }
-  });
+  const logBtn = expanded.querySelector('.log-btn');
+  if (logBtn) {
+    logBtn.addEventListener('click', async () => {
+      const storage = await getStorage();
+      storage.stats[reminder.id].todayCount++;
+      await setStorage(storage);
+      renderDashboard(storage); // Re-render
+      
+      if (storage.stats[reminder.id].todayCount >= (reminder.metadata.dailyTarget || 0)) {
+        triggerConfetti();
+      }
+    });
+  }
 
   return card;
 }

@@ -9,7 +9,8 @@
     "default_title": "Rhythm"
   },
   "background": {
-    "service_worker": "src/background/service-worker.js"
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
   },
   "offline_enabled": true
 }

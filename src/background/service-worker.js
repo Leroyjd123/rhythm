@@ -1,6 +1,6 @@
-import { initializeStorage } from './shared/storage.js';
-import { logInfo } from './shared/logger.js';
-import { initializeEngine, handleAlarm } from './reminder-engine.js';
+import { initializeStorage } from '/src/shared/storage.js';
+import { logInfo } from '/src/shared/logger.js';
+import { initializeEngine, handleAlarm, createReminder, recreateAllReminders } from '/src/background/reminder-engine.js';
 
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorage();
