@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Rhythm",
+  "version": "1.0.0",
+  "description": "A lightweight, offline-first schedule discipline and wellbeing assistant.",
+  "permissions": ["storage", "alarms", "notifications"],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Rhythm"
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "offline_enabled": true
+}

@@ -1,0 +1,21 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+logs/
+*.log
+.gemini/
+.agent/
+
+# Build/Dist (if any in future)
+dist/
+build/
+node_modules/

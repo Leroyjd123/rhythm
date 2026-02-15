@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rhythm</title>
+    <link rel="stylesheet" href="../styles/tokens.css" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Rhythm</h1>
+      </header>
+      <div id="focus-banner" class="focus-banner">
+        <div class="focus-info">
+          <span class="focus-label">Status</span>
+          <span id="focus-status" class="focus-timer">Normal Mode</span>
+        </div>
+        <button id="focus-toggle" class="focus-btn">Focus 1h</button>
+      </div>
+      <main id="dashboard">
+        <!-- Reminder cards will be injected here -->
+        <div class="empty-state">Loading your rhythm...</div>
+      </main>
+      <section id="notes-section">
+      <div class="section-header">
+        <h2>Quick Notes</h2>
+        <button id="add-note-btn" class="icon-btn">+</button>
+      </div>
+      <div id="notes-list"></div>
+    </section>
+
+    <section id="advanced-section">
+      <div class="section-header collapsible-trigger">
+        <h2>Advanced Settings</h2>
+        <span class="chevron">▾</span>
+      </div>
+      <div id="advanced-content" class="collapsible-content">
+        <div class="setting-row">
+          <label>Master Toggle</label>
+          <label class="toggle">
+            <input type="checkbox" id="master-toggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="btn-group">
+          <button id="export-btn" class="secondary">Export JSON</button>
+          <button id="reset-btn" class="danger">Reset Data</button>
+        </div>
+        <div id="debug-logs">
+          <h3>Debug Logs</h3>
+          <div id="log-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="confetti-container"></div>
+    </div>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
