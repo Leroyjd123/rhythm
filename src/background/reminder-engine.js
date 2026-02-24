@@ -1,5 +1,5 @@
-import { getStorage, setStorage } from '../shared/storage.js';
-import { logInfo, logError } from '../shared/logger.js';
+import { getStorage, setStorage } from '/src/shared/storage.js';
+import { logInfo, logError } from '/src/shared/logger.js';
 
 /**
  * Main entry point for the reminder engine.
@@ -13,7 +13,7 @@ export async function initializeEngine() {
 /**
  * Creates/Updates an alarm for a reminder.
  */
-export async function createReminder(reminder) {
+export async function createReminder(reminder, triggerNow = false) {
   if (!reminder.enabled) {
     await cancelReminder(reminder.id);
     return;
@@ -28,14 +28,18 @@ export async function createReminder(reminder) {
     await scheduleFixedReminder(reminder);
   }
 
-  logInfo(`Reminder created/updated: ${reminder.id}`, { type: reminder.type });
+  if (triggerNow) {
+    await bufferedNotification(reminder.id);
+  }
+
+  logInfo(`Reminder created/updated: ${reminder.id}`, { type: reminder.type, triggerNow });
 }
 
 /**
  * Schedules an interval-based alarm.
  */
 async function scheduleIntervalReminder(reminder) {
-  let interval = Math.max(5, reminder.intervalMinutes || 5);
+  let interval = Math.max(1, reminder.intervalMinutes || 1);
   chrome.alarms.create(reminder.id, {
     periodInMinutes: interval,
     delayInMinutes: interval // Start first alarm after the interval
@@ -209,11 +213,17 @@ async function dispatchNotification(ids) {
       { title: 'Log/Done' },
       { title: 'Snooze (5m)' }
     ],
+    priority: 2,
     requireInteraction: true
   });
+  logInfo(`Notification dispatched: ${notificationId}`);
+  // Auto-dismiss after 5 minutes
+  setTimeout(() => {
+    chrome.notifications.clear(notificationId);
+  }, 5 * 60 * 1000);
 }
 
-// Global listener for notification buttons (moved from inside dispatch)
+// Global listener for notification buttons
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
   if (notifId.startsWith('ids:')) {
     const parts = notifId.split(':');
@@ -236,12 +246,6 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
     chrome.notifications.clear(notifId);
   }
 });
-
-  // Auto-dismiss after 5 minutes
-  setTimeout(() => {
-    chrome.notifications.clear(notificationId);
-  }, 5 * 60 * 1000);
-}
 
 /**
  * Helper: Calculates the next timestamp for a fixed time of day.

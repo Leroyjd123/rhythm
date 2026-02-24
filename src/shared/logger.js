@@ -1,4 +1,4 @@
-import { getStorage, setStorage } from './storage.js';
+import { getStorage, setStorage } from '/src/shared/storage.js';
 
 const LOG_LIMIT = 100;
 

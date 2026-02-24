@@ -1,13 +1,24 @@
-import { getStorage, updateReminder, setStorage } from '../shared/storage.js';
+import { getStorage, updateReminder, setStorage } from '/src/shared/storage.js';
 
 async function init() {
-  const storage = await getStorage();
-  if (!storage) return;
+  console.log('Popup initializing...');
+  try {
+    const storage = await getStorage();
+    if (!storage) {
+      console.warn('Storage not found, extension might not be initialized');
+      document.body.innerHTML = '<div style="padding:20px; text-align:center;">Extension initializing... Please wait a moment and reopen.</div>';
+      return;
+    }
 
-  renderDashboard(storage);
-  initFocusMode(storage);
-  initNotes(storage);
-  initAdvanced(storage);
+    renderDashboard(storage);
+    initFocusMode(storage);
+    initNotes(storage);
+    initAdvanced(storage);
+    console.log('Popup initialized successfully');
+  } catch (err) {
+    console.error('Failed to initialize popup:', err);
+    document.body.innerHTML = '<div style="padding:20px; color:red;">Error loading extension data. Please restart Chrome or reload the extension.</div>';
+  }
 }
 
 function initAdvanced(storage) {
@@ -61,68 +72,51 @@ function initNotes(storage) {
 
   const renderNotes = () => {
     notesList.innerHTML = '';
-    // Sort completed to bottom
     const sortedNotes = [...storage.notes].sort((a, b) => a.completed - b.completed);
     
-    sortedNotes.forEach(note => {
+    sortedNotes.forEach((note, index) => {
       const item = document.createElement('div');
       item.className = `note-item ${note.completed ? 'completed' : ''}`;
       item.innerHTML = `
         <input type="checkbox" class="note-checkbox" ${note.completed ? 'checked' : ''}>
         <textarea class="note-textarea" placeholder="Note...">${note.text}</textarea>
+        <button class="delete-note-btn icon-btn">×</button>
       `;
 
-      const textarea = item.querySelector('.note-textarea');
       const checkbox = item.querySelector('.note-checkbox');
+      const textarea = item.querySelector('.note-textarea');
+      const deleteBtn = item.querySelector('.delete-note-btn');
 
-      textarea.addEventListener('input', async (e) => {
-        note.text = e.target.value;
-        if (note.text.trim() === '') {
-          // Auto-delete on empty will be handled separately on popup close or blur
-        }
+      checkbox.addEventListener('change', async () => {
+        note.completed = checkbox.checked;
+        await setStorage(storage);
+        renderNotes();
+      });
+
+      textarea.addEventListener('input', async () => {
+        note.text = textarea.value;
         await setStorage(storage);
       });
 
-      textarea.addEventListener('blur', async () => {
-        if (note.text.trim() === '') {
-          storage.notes = storage.notes.filter(n => n.id !== note.id);
-          await setStorage(storage);
-          renderNotes();
-        }
-      });
-
-      checkbox.addEventListener('change', async (e) => {
-        note.completed = e.target.checked;
+      deleteBtn.addEventListener('click', async () => {
+        storage.notes = storage.notes.filter(n => n.id !== note.id);
         await setStorage(storage);
         renderNotes();
       });
 
       notesList.appendChild(item);
     });
-
-    if (storage.notes.length >= 50) {
-      const warning = document.createElement('div');
-      warning.className = 'empty-state';
-      warning.textContent = 'Note limit reached (50).';
-      notesList.appendChild(warning);
-    }
   };
 
   addBtn.addEventListener('click', async () => {
-    const newNote = {
-      id: `note-${Date.now()}`,
+    storage.notes.push({
+      id: Date.now().toString(),
       text: '',
       completed: false,
-      createdAt: Date.now()
-    };
-    storage.notes.unshift(newNote);
+      timestamp: Date.now()
+    });
     await setStorage(storage);
     renderNotes();
-    // Focus the new textarea
-    setTimeout(() => {
-      const firstTextarea = notesList.querySelector('.note-textarea');
-      if (firstTextarea) firstTextarea.focus();
-    }, 0);
   });
 
   renderNotes();
@@ -131,7 +125,6 @@ function initNotes(storage) {
 function initFocusMode(storage) {
   const focusToggle = document.getElementById('focus-toggle');
   const focusStatus = document.getElementById('focus-status');
-  
   let timerInterval = null;
 
   const updateUI = () => {
@@ -139,39 +132,42 @@ function initFocusMode(storage) {
     const focusUntil = storage.settings.focusUntil;
 
     if (focusUntil && now < focusUntil) {
-      const diff = focusUntil - now;
-      const mins = Math.floor(diff / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      focusStatus.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-      focusToggle.textContent = 'Stop';
-      focusToggle.className = 'focus-btn btn-stop';
+      focusToggle.textContent = 'End Focus';
+      focusToggle.classList.add('active');
+      
+      const updateTimer = () => {
+        const remaining = Math.max(0, focusUntil - Date.now());
+        if (remaining === 0) {
+          clearInterval(timerInterval);
+          window.location.reload();
+          return;
+        }
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        focusStatus.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      };
+
+      updateTimer();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(updateTimer, 1000);
     } else {
-      focusStatus.textContent = 'Normal Mode';
       focusToggle.textContent = 'Focus 1h';
-      focusToggle.className = 'focus-btn';
-      if (timerInterval) clearInterval(timerInterval);
+      focusToggle.classList.remove('active');
+      focusStatus.textContent = 'Normal Mode';
+      clearInterval(timerInterval);
     }
   };
 
   focusToggle.addEventListener('click', async () => {
-    const now = Date.now();
-    if (storage.settings.focusUntil && now < storage.settings.focusUntil) {
-      // Stop focus
+    if (storage.settings.focusUntil && Date.now() < storage.settings.focusUntil) {
       storage.settings.focusUntil = null;
     } else {
-      // Start focus (1 hour)
-      storage.settings.focusUntil = now + (60 * 60 * 1000);
+      storage.settings.focusUntil = Date.now() + (60 * 60 * 1000); // 1 hour
     }
     await setStorage(storage);
     updateUI();
-    if (storage.settings.focusUntil) {
-      timerInterval = setInterval(updateUI, 1000);
-    }
   });
 
-  if (storage.settings.focusUntil) {
-    timerInterval = setInterval(updateUI, 1000);
-  }
   updateUI();
 }
 
@@ -190,19 +186,30 @@ const ICONS = {
 
 function renderDashboard(storage) {
   const dashboard = document.getElementById('dashboard');
+  if (!dashboard) return;
   dashboard.innerHTML = '';
 
-  const reminderGroups = {
-    wellbeing: ['water', 'posture', 'break', 'eye', 'stand', 'stretch', 'breathing'],
-    work: ['workStart', 'workLunch', 'workEnd']
+  const wellbeingReminders = ['water', 'posture', 'break', 'eye', 'stand', 'stretch', 'breathing'];
+  const workReminders = ['workStart', 'workLunch', 'workEnd'];
+
+  const sectionH3 = (title) => {
+    const h3 = document.createElement('h3');
+    h3.textContent = title;
+    h3.className = 'dashboard-section-title';
+    return h3;
   };
 
-  // Render Work Reminders
-  reminderGroups.work.forEach(id => {
+  dashboard.appendChild(sectionH3('Wellbeing Reminders'));
+  wellbeingReminders.forEach(id => {
     const reminder = storage.reminders[id];
-    if (reminder) {
-      dashboard.appendChild(createReminderCard(reminder, null));
-    }
+    const stats = storage.stats[id];
+    if (reminder) dashboard.appendChild(createReminderCard(reminder, stats));
+  });
+
+  dashboard.appendChild(sectionH3('Work Reminders'));
+  workReminders.forEach(id => {
+    const reminder = storage.reminders[id];
+    if (reminder) dashboard.appendChild(createReminderCard(reminder, null));
   });
 }
 
@@ -229,10 +236,11 @@ function createReminderCard(reminder, stats) {
     expanded.innerHTML = `
       <div class="setting-row">
         <label>Interval (mins)</label>
-        <input type="number" class="interval-input" value="${reminder.intervalMinutes}" min="5">
+        <input type="number" class="interval-input" value="${reminder.intervalMinutes}" min="1">
       </div>
       <div class="action-row">
         <button class="primary log-btn">${reminder.id === 'water' ? '+ Log' : 'Done'}</button>
+        <button class="secondary save-btn">Save</button>
       </div>
     `;
   } else {
@@ -249,6 +257,9 @@ function createReminderCard(reminder, stats) {
           `).join('')}
         </div>
       </div>
+      <div class="action-row">
+        <button class="secondary save-btn">Save</button>
+      </div>
     `;
   }
 
@@ -259,72 +270,64 @@ function createReminderCard(reminder, stats) {
   header.querySelector('input').addEventListener('change', async (e) => {
     const enabled = e.target.checked;
     await updateReminder(reminder.id, { enabled });
-    // In chrome extensions, we can call background script via chrome.runtime.sendMessage
-    chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled } });
+    chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled }, triggerNow: enabled });
   });
 
   // Expand Listener
   header.addEventListener('click', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.className === 'slider') return;
+    if (e.target.tagName === 'INPUT' || e.target.className === 'slider' || e.target.className.includes('btn') || e.target.tagName === 'BUTTON') return;
     card.classList.toggle('open');
   });
 
-  // Interval Validation Listener
-  const intervalInput = expanded.querySelector('.interval-input');
-  intervalInput.addEventListener('change', async (e) => {
-    let value = parseInt(e.target.value);
-    if (isNaN(value) || value < 5) {
-      value = 5;
-      e.target.value = 5;
-    }
-    await updateReminder(reminder.id, { intervalMinutes: value });
-    if (reminder.enabled) {
-      chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, intervalMinutes: value } });
-    }
-  });
-
-  // Time Input Listener
-  const timeInput = expanded.querySelector('.time-input');
-  if (timeInput) {
-    timeInput.addEventListener('change', async (e) => {
-      const value = e.target.value;
-      await updateReminder(reminder.id, { timeOfDay: value });
-      if (reminder.enabled) {
-        chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, timeOfDay: value } });
+  // Save Button Listener
+  const saveBtn = expanded.querySelector('.save-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const updates = {};
+      if (reminder.type === 'interval') {
+        const input = expanded.querySelector('.interval-input');
+        updates.intervalMinutes = Math.max(1, parseInt(input.value) || 1);
+        input.value = updates.intervalMinutes;
+      } else {
+        updates.timeOfDay = expanded.querySelector('.time-input').value;
+        const activeDays = Array.from(expanded.querySelectorAll('.day-btn.active')).map(btn => parseInt(btn.dataset.day));
+        updates.workdays = activeDays;
       }
+      
+      await updateReminder(reminder.id, updates);
+      chrome.runtime.sendMessage({ 
+        action: 'createReminder', 
+        reminder: { ...reminder, ...updates, enabled: true }, 
+        triggerNow: true 
+      });
+      
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = 'Saved!';
+      setTimeout(() => saveBtn.textContent = originalText, 1500);
     });
   }
 
-  // Weekday Toggle Listener
-  const dayBtns = expanded.querySelectorAll('.day-btn');
-  dayBtns.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const day = parseInt(btn.dataset.day);
-      let workdays = [...reminder.workdays];
-      if (workdays.includes(day)) {
-        workdays = workdays.filter(d => d !== day);
-      } else {
-        workdays.push(day);
-      }
-      await updateReminder(reminder.id, { workdays });
+  // Day Button Listener (Fixed Time)
+  expanded.querySelectorAll('.day-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
       btn.classList.toggle('active');
-      if (reminder.enabled) {
-        chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, workdays } });
-      }
     });
   });
 
   // Log Button
-  expanded.querySelector('.log-btn').addEventListener('click', async () => {
-    const storage = await getStorage();
-    storage.stats[reminder.id].todayCount++;
-    await setStorage(storage);
-    renderDashboard(storage); // Re-render
-    
-    if (storage.stats[reminder.id].todayCount >= (reminder.metadata.dailyTarget || 0)) {
-      triggerConfetti();
-    }
-  });
+  const logBtn = expanded.querySelector('.log-btn');
+  if (logBtn) {
+    logBtn.addEventListener('click', async () => {
+      const storage = await getStorage();
+      storage.stats[reminder.id].todayCount++;
+      await setStorage(storage);
+      renderDashboard(storage);
+      
+      if (stats && storage.stats[reminder.id].todayCount >= (reminder.metadata.dailyTarget || 0)) {
+        triggerConfetti();
+      }
+    });
+  }
 
   return card;
 }

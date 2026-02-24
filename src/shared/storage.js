@@ -104,7 +104,7 @@ export const DEFAULT_SCHEMA = {
   logs: []
 };
 
-export const STORAGE_KEY = 'rhythmData';
+export const STORAGE_KEY = "rhythmData";
 
 export async function getStorage() {
   const result = await chrome.storage.local.get(STORAGE_KEY);
@@ -119,7 +119,7 @@ export async function initializeStorage() {
   const data = await getStorage();
   if (!data || data.schemaVersion !== DEFAULT_SCHEMA.schemaVersion) {
     await setStorage(DEFAULT_SCHEMA);
-    console.log('Storage initialized with default schema');
+    console.log("Storage initialized with default schema");
     return DEFAULT_SCHEMA;
   }
   return data;

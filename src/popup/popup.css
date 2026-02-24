@@ -73,7 +73,7 @@ header h1 {
   right: 0;
   bottom: 0;
   background-color: var(--color-text-muted);
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 18px;
 }
 
@@ -85,7 +85,7 @@ header h1 {
   left: 2px;
   bottom: 2px;
   background-color: white;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 50%;
 }
 
@@ -152,8 +152,14 @@ button.primary:hover {
 }
 
 @keyframes fall {
-  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(400px) rotate(360deg); opacity: 0; }
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 /* Settings */
@@ -246,7 +252,7 @@ button.primary:hover {
 }
 
 .btn-stop {
-  background-color: #E26D5C;
+  background-color: #e26d5c;
 }
 
 /* Notes Section */
@@ -286,7 +292,7 @@ button.primary:hover {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .note-textarea {
@@ -363,7 +369,7 @@ button.secondary {
 }
 
 button.danger {
-  background-color: #E26D5C;
+  background-color: #e26d5c;
   color: white;
   border: none;
   border-radius: var(--radius-sm);
@@ -375,8 +381,8 @@ button.danger {
 
 #debug-logs {
   background-color: #1a1a1a;
-  color: #0F0;
-  font-family: 'Courier New', Courier, monospace;
+  color: #0f0;
+  font-family: "Courier New", Courier, monospace;
   font-size: 10px;
   padding: var(--space-2);
   border-radius: var(--radius-sm);
@@ -396,7 +402,21 @@ button.danger {
   line-height: 1.2;
 }
 
-.log-time { color: #888; }
-.log-level-INFO { color: #0F0; }
-.log-level-WARN { color: #FF0; }
-.log-level-ERROR { color: #F00; }
+.log-time {
+  color: #888;
+}
+.log-level-INFO {
+  color: #0f0;
+}
+.log-level-WARN {
+  color: #ff0;
+}
+.log-level-ERROR {
+  color: #f00;
+}
+
+.disabled-feature {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.5);
+}
