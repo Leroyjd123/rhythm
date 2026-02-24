@@ -12,5 +12,8 @@
     "service_worker": "src/background/service-worker.js",
     "type": "module"
   },
+  "icons": {
+    "128": "public/icon128.png"
+  },
   "offline_enabled": true
 }

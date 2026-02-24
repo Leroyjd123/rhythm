@@ -19,7 +19,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'createReminder') {
-    createReminder(message.reminder);
+    createReminder(message.reminder, message.triggerNow);
   } else if (message.action === 'recreateAllReminders') {
     recreateAllReminders();
   }

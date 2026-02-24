@@ -31,31 +31,31 @@
       <div id="notes-list"></div>
     </section>
 
-    <section id="advanced-section">
-      <div class="section-header collapsible-trigger">
-        <h2>Advanced Settings</h2>
-        <span class="chevron">▾</span>
-      </div>
-      <div id="advanced-content" class="collapsible-content">
-        <div class="setting-row">
-          <label>Master Toggle</label>
-          <label class="toggle">
-            <input type="checkbox" id="master-toggle">
-            <span class="slider"></span>
-          </label>
+      <section id="advanced-section">
+        <div class="section-header collapsible-trigger">
+          <h2>Advanced Settings</h2>
+          <span class="chevron">▾</span>
         </div>
-        <div class="btn-group">
-          <button id="export-btn" class="secondary">Export JSON</button>
-          <button id="reset-btn" class="danger">Reset Data</button>
+        <div id="advanced-content" class="collapsible-content">
+          <div class="setting-row">
+            <label>Master Toggle</label>
+            <label class="toggle">
+              <input type="checkbox" id="master-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="btn-group">
+            <button id="export-btn" class="secondary">Export JSON</button>
+            <button id="reset-btn" class="danger">Reset Data</button>
+          </div>
+          <div id="debug-logs">
+            <h3>Debug Logs</h3>
+            <div id="log-list"></div>
+          </div>
         </div>
-        <div id="debug-logs">
-          <h3>Debug Logs</h3>
-          <div id="log-list"></div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <div id="confetti-container"></div>
+      <div id="confetti-container"></div>
     </div>
     <script src="popup.js" type="module"></script>
   </body>
