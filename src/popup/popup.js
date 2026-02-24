@@ -1,5 +1,25 @@
 import { getStorage, updateReminder, setStorage } from '/src/shared/storage.js';
 
+/**
+ * Debounce helper to limit storage writes
+ */
+function debounce(fn, delay = 400) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const debouncedSetStorage = debounce(async (storage) => {
+  try {
+    await setStorage(storage);
+    console.log('Debounced storage update successful');
+  } catch (err) {
+    console.error('Debounced storage update failed:', err);
+  }
+}, 400);
+
 async function init() {
   console.log('Popup initializing...');
   try {
@@ -93,9 +113,9 @@ function initNotes(storage) {
         renderNotes();
       });
 
-      textarea.addEventListener('input', async () => {
+      textarea.addEventListener('input', () => {
         note.text = textarea.value;
-        await setStorage(storage);
+        debouncedSetStorage(storage);
       });
 
       deleteBtn.addEventListener('click', async () => {
@@ -275,7 +295,10 @@ function createReminderCard(reminder, stats) {
 
   // Expand Listener
   header.addEventListener('click', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.className === 'slider' || e.target.className.includes('btn') || e.target.tagName === 'BUTTON') return;
+    // Prevent expansion if clicking interactive elements
+    if (e.target.closest('button') || e.target.closest('input') || e.target.classList.contains('slider')) {
+      return;
+    }
     card.classList.toggle('open');
   });
 
@@ -294,11 +317,12 @@ function createReminderCard(reminder, stats) {
         updates.workdays = activeDays;
       }
       
+      const isEnabled = header.querySelector('input').checked;
       await updateReminder(reminder.id, updates);
       chrome.runtime.sendMessage({ 
         action: 'createReminder', 
-        reminder: { ...reminder, ...updates, enabled: true }, 
-        triggerNow: true 
+        reminder: { ...reminder, ...updates, enabled: isEnabled }, 
+        triggerNow: isEnabled 
       });
       
       const originalText = saveBtn.textContent;
@@ -319,11 +343,15 @@ function createReminderCard(reminder, stats) {
   if (logBtn) {
     logBtn.addEventListener('click', async () => {
       const storage = await getStorage();
+      if (!storage.stats[reminder.id]) {
+        storage.stats[reminder.id] = { todayCount: 0, lastResetDate: new Date().toISOString().split('T')[0] };
+      }
       storage.stats[reminder.id].todayCount++;
       await setStorage(storage);
       renderDashboard(storage);
       
-      if (stats && storage.stats[reminder.id].todayCount >= (reminder.metadata.dailyTarget || 0)) {
+      const currentStats = storage.stats[reminder.id];
+      if (currentStats && currentStats.todayCount >= (reminder.metadata.dailyTarget || 0)) {
         triggerConfetti();
       }
     });

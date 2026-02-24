@@ -91,6 +91,13 @@ export async function handleAlarm(alarm) {
     return;
   }
 
+  if (alarm.name.startsWith('clear-notif:')) {
+    const notifId = alarm.name.replace('clear-notif:', '');
+    chrome.notifications.clear(notifId);
+    chrome.alarms.clear(alarm.name);
+    return;
+  }
+
   if (alarm.name.startsWith('snooze-')) {
     const id = alarm.name.replace('snooze-', '');
     await dispatchNotification([id]);
@@ -217,14 +224,18 @@ async function dispatchNotification(ids) {
     requireInteraction: true
   });
   logInfo(`Notification dispatched: ${notificationId}`);
-  // Auto-dismiss after 5 minutes
-  setTimeout(() => {
-    chrome.notifications.clear(notificationId);
-  }, 5 * 60 * 1000);
+  // Auto-dismiss after 5 minutes using alarms (replaces setTimeout for SW longevity)
+  const alarmName = `clear-notif:${notificationId}`;
+  chrome.alarms.create(alarmName, {
+    delayInMinutes: 5
+  });
 }
 
 // Global listener for notification buttons
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
+  // Clear the auto-dismiss alarm if someone clicks a button
+  await chrome.alarms.clear(`clear-notif:${notifId}`);
+
   if (notifId.startsWith('ids:')) {
     const parts = notifId.split(':');
     const ids = parts[1].split(',');

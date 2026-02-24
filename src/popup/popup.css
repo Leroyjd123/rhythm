@@ -415,6 +415,7 @@ button.danger {
   color: #f00;
 }
 
+/* Reserved for future feature-disabling modules */
 .disabled-feature {
   opacity: 0.5;
   pointer-events: none;
