@@ -5,10 +5,33 @@ import { getStorage, updateReminder, setStorage } from '/src/shared/storage.js';
  */
 function debounce(fn, delay = 400) {
   let timeout;
-  return (...args) => {
+  let lastArgs;
+
+  const debounced = (...args) => {
+    lastArgs = args;
     clearTimeout(timeout);
-    timeout = setTimeout(() => fn(...args), delay);
+    timeout = setTimeout(() => {
+      fn(...args);
+      timeout = null;
+    }, delay);
   };
+
+  debounced.flush = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      fn(...lastArgs);
+      timeout = null;
+    }
+  };
+
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+
+  return debounced;
 }
 
 const debouncedSetStorage = debounce(async (storage) => {
@@ -34,6 +57,11 @@ async function init() {
     initFocusMode(storage);
     initNotes(storage);
     initAdvanced(storage);
+
+    // Flush pending storage writes on close
+    window.addEventListener('pagehide', () => debouncedSetStorage.flush());
+    window.addEventListener('beforeunload', () => debouncedSetStorage.flush());
+
     console.log('Popup initialized successfully');
   } catch (err) {
     console.error('Failed to initialize popup:', err);
@@ -116,6 +144,10 @@ function initNotes(storage) {
       textarea.addEventListener('input', () => {
         note.text = textarea.value;
         debouncedSetStorage(storage);
+      });
+
+      textarea.addEventListener('blur', () => {
+        debouncedSetStorage.flush();
       });
 
       deleteBtn.addEventListener('click', async () => {
