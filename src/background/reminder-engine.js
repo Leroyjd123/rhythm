@@ -40,7 +40,7 @@ export async function createReminder(reminder, triggerNow = false) {
  */
 async function scheduleIntervalReminder(reminder) {
   let interval = Math.max(1, reminder.intervalMinutes || 1);
-  chrome.alarms.create(reminder.id, {
+  await chrome.alarms.create(reminder.id, {
     periodInMinutes: interval,
     delayInMinutes: interval // Start first alarm after the interval
   });
@@ -51,7 +51,7 @@ async function scheduleIntervalReminder(reminder) {
  */
 async function scheduleFixedReminder(reminder) {
   const nextTime = calculateNextFixedTimestamp(reminder.timeOfDay, reminder.workdays);
-  chrome.alarms.create(reminder.id, {
+  await chrome.alarms.create(reminder.id, {
     when: nextTime
   });
 }
@@ -91,6 +91,13 @@ export async function handleAlarm(alarm) {
     return;
   }
 
+  if (alarm.name.startsWith('clear-notif:')) {
+    const notifId = alarm.name.replace('clear-notif:', '');
+    await chrome.notifications.clear(notifId);
+    await chrome.alarms.clear(alarm.name);
+    return;
+  }
+
   if (alarm.name.startsWith('snooze-')) {
     const id = alarm.name.replace('snooze-', '');
     await dispatchNotification([id]);
@@ -126,7 +133,7 @@ export async function handleAlarm(alarm) {
  * Snoozes a reminder for a fixed period (5 minutes).
  */
 export async function handleSnooze(id) {
-  chrome.alarms.create(`snooze-${id}`, {
+  await chrome.alarms.create(`snooze-${id}`, {
     delayInMinutes: 5
   });
   logInfo(`Reminder snoozed: ${id}`);
@@ -160,7 +167,7 @@ export async function scheduleMidnightReset() {
   const nextMidnight = new Date();
   nextMidnight.setHours(24, 0, 0, 0);
 
-  chrome.alarms.create('midnightReset', {
+  await chrome.alarms.create('midnightReset', {
     when: nextMidnight.getTime()
   });
 }
@@ -217,14 +224,18 @@ async function dispatchNotification(ids) {
     requireInteraction: true
   });
   logInfo(`Notification dispatched: ${notificationId}`);
-  // Auto-dismiss after 5 minutes
-  setTimeout(() => {
-    chrome.notifications.clear(notificationId);
-  }, 5 * 60 * 1000);
+  // Auto-dismiss after 5 minutes using alarms (replaces setTimeout for SW longevity)
+  const alarmName = `clear-notif:${notificationId}`;
+  await chrome.alarms.create(alarmName, {
+    delayInMinutes: 5
+  });
 }
 
 // Global listener for notification buttons
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
+  // Clear the auto-dismiss alarm if someone clicks a button
+  await chrome.alarms.clear(`clear-notif:${notifId}`);
+
   if (notifId.startsWith('ids:')) {
     const parts = notifId.split(':');
     const ids = parts[1].split(',');
