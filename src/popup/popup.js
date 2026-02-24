@@ -296,7 +296,7 @@ function createReminderCard(reminder, stats) {
   // Expand Listener
   header.addEventListener('click', (e) => {
     // Prevent expansion if clicking interactive elements
-    if (e.target.closest('button') || e.target.closest('input') || e.target.classList.contains('slider')) {
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.toggle') || e.target.classList.contains('slider')) {
       return;
     }
     card.classList.toggle('open');
@@ -351,7 +351,7 @@ function createReminderCard(reminder, stats) {
       renderDashboard(storage);
       
       const currentStats = storage.stats[reminder.id];
-      if (currentStats && currentStats.todayCount >= (reminder.metadata.dailyTarget || 0)) {
+      if (reminder.metadata.dailyTarget && currentStats.todayCount >= reminder.metadata.dailyTarget) {
         triggerConfetti();
       }
     });

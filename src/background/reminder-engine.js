@@ -40,7 +40,7 @@ export async function createReminder(reminder, triggerNow = false) {
  */
 async function scheduleIntervalReminder(reminder) {
   let interval = Math.max(1, reminder.intervalMinutes || 1);
-  chrome.alarms.create(reminder.id, {
+  await chrome.alarms.create(reminder.id, {
     periodInMinutes: interval,
     delayInMinutes: interval // Start first alarm after the interval
   });
@@ -51,7 +51,7 @@ async function scheduleIntervalReminder(reminder) {
  */
 async function scheduleFixedReminder(reminder) {
   const nextTime = calculateNextFixedTimestamp(reminder.timeOfDay, reminder.workdays);
-  chrome.alarms.create(reminder.id, {
+  await chrome.alarms.create(reminder.id, {
     when: nextTime
   });
 }
@@ -93,8 +93,8 @@ export async function handleAlarm(alarm) {
 
   if (alarm.name.startsWith('clear-notif:')) {
     const notifId = alarm.name.replace('clear-notif:', '');
-    chrome.notifications.clear(notifId);
-    chrome.alarms.clear(alarm.name);
+    await chrome.notifications.clear(notifId);
+    await chrome.alarms.clear(alarm.name);
     return;
   }
 
@@ -133,7 +133,7 @@ export async function handleAlarm(alarm) {
  * Snoozes a reminder for a fixed period (5 minutes).
  */
 export async function handleSnooze(id) {
-  chrome.alarms.create(`snooze-${id}`, {
+  await chrome.alarms.create(`snooze-${id}`, {
     delayInMinutes: 5
   });
   logInfo(`Reminder snoozed: ${id}`);
@@ -167,7 +167,7 @@ export async function scheduleMidnightReset() {
   const nextMidnight = new Date();
   nextMidnight.setHours(24, 0, 0, 0);
 
-  chrome.alarms.create('midnightReset', {
+  await chrome.alarms.create('midnightReset', {
     when: nextMidnight.getTime()
   });
 }
@@ -226,7 +226,7 @@ async function dispatchNotification(ids) {
   logInfo(`Notification dispatched: ${notificationId}`);
   // Auto-dismiss after 5 minutes using alarms (replaces setTimeout for SW longevity)
   const alarmName = `clear-notif:${notificationId}`;
-  chrome.alarms.create(alarmName, {
+  await chrome.alarms.create(alarmName, {
     delayInMinutes: 5
   });
 }
