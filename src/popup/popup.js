@@ -1,4 +1,4 @@
-import { getStorage, updateReminder, setStorage } from '/src/shared/storage.js';
+import { getStorage, updateReminder, setStorage, getLocalDateString } from '/src/shared/storage.js';
 
 /**
  * Debounce helper to limit storage writes
@@ -94,7 +94,7 @@ function initAdvanced(storage) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rhythm-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `rhythm-backup-${getLocalDateString()}.json`;
     a.click();
   });
 
@@ -127,7 +127,7 @@ function initNotes(storage) {
       item.className = `note-item ${note.completed ? 'completed' : ''}`;
       item.innerHTML = `
         <input type="checkbox" class="note-checkbox" ${note.completed ? 'checked' : ''}>
-        <textarea class="note-textarea" placeholder="Note...">${note.text}</textarea>
+        <textarea class="note-textarea" placeholder="New note..." rows="1">${note.text}</textarea>
         <button class="delete-note-btn icon-btn">×</button>
       `;
 
@@ -225,15 +225,15 @@ function initFocusMode(storage) {
 
 const ICONS = {
   water: '💧',
-  posture: '🪑',
+  posture: '🧘',
   break: '☕',
   eye: '👁️',
   stand: '🚶',
-  stretch: '🤸',
-  breathing: '🧘',
-  workStart: '🏁',
-  workLunch: '🍲',
-  workEnd: '🏠'
+  stretch: '🙆',
+  breathing: '✨',
+  workStart: '🕒',
+  workLunch: '🍎',
+  workEnd: '🌙'
 };
 
 function renderDashboard(storage) {
@@ -244,112 +244,120 @@ function renderDashboard(storage) {
   const wellbeingReminders = ['water', 'posture', 'break', 'eye', 'stand', 'stretch', 'breathing'];
   const workReminders = ['workStart', 'workLunch', 'workEnd'];
 
-  const sectionH3 = (title) => {
+  const createSection = (title, reminderIds) => {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
     const h3 = document.createElement('h3');
     h3.textContent = title;
     h3.className = 'dashboard-section-title';
-    return h3;
+    section.appendChild(h3);
+
+    reminderIds.forEach(id => {
+      const reminder = storage.reminders[id];
+      const stats = storage.stats[id];
+      if (reminder) {
+        section.appendChild(createReminderCard(reminder, stats));
+      }
+    });
+    return section;
   };
 
-  dashboard.appendChild(sectionH3('Wellbeing Reminders'));
-  wellbeingReminders.forEach(id => {
-    const reminder = storage.reminders[id];
-    const stats = storage.stats[id];
-    if (reminder) dashboard.appendChild(createReminderCard(reminder, stats));
-  });
-
-  dashboard.appendChild(sectionH3('Work Reminders'));
-  workReminders.forEach(id => {
-    const reminder = storage.reminders[id];
-    if (reminder) dashboard.appendChild(createReminderCard(reminder, null));
-  });
+  dashboard.appendChild(createSection('Wellbeing', wellbeingReminders));
+  dashboard.appendChild(createSection('Work Schedule', workReminders));
 }
 
 function createReminderCard(reminder, stats) {
   const card = document.createElement('div');
   card.className = `card ${reminder.id}-card`;
   
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  header.innerHTML = `
-    <div class="card-icon">${ICONS[reminder.id] || '🔔'}</div>
-    <div class="card-label">${reminder.id.charAt(0).toUpperCase() + reminder.id.slice(1)}</div>
-    ${stats ? `<div class="card-counter">${stats.todayCount}${reminder.metadata.dailyTarget ? ` / ${reminder.metadata.dailyTarget}` : ''}</div>` : ''}
-    <label class="toggle">
-      <input type="checkbox" ${reminder.enabled ? 'checked' : ''}>
-      <span class="slider"></span>
-    </label>
+  const hasDailyTarget = reminder.metadata && reminder.metadata.dailyTarget;
+  const counterHtml = stats ? `
+    <div class="card-counter">
+      ${stats.todayCount}${hasDailyTarget ? ` / ${reminder.metadata.dailyTarget}` : ''}
+    </div>
+  ` : '';
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-icon">${ICONS[reminder.id] || '🔔'}</div>
+      <div class="card-label">${reminder.id.charAt(0).toUpperCase() + reminder.id.slice(1)}</div>
+      ${counterHtml}
+      <label class="toggle">
+        <input type="checkbox" ${reminder.enabled ? 'checked' : ''}>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="card-expanded">
+      <div class="expanded-content">
+        ${reminder.type === 'interval' ? `
+          <div class="setting-row">
+            <label>Interval (minutes)</label>
+            <input type="number" class="interval-input" value="${reminder.intervalMinutes}" min="1">
+          </div>
+          <div class="action-row">
+            <button class="primary log-btn">${reminder.id === 'water' ? '+ Log Water' : 'Mark as Done'}</button>
+            <button class="secondary save-btn">Save</button>
+          </div>
+        ` : `
+          <div class="setting-row">
+            <label>Time</label>
+            <input type="time" class="time-input" value="${reminder.timeOfDay}">
+          </div>
+          <div class="setting-row">
+            <label>Workdays</label>
+            <div class="weekday-selector">
+              ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => `
+                <button class="day-btn ${reminder.workdays.includes(i) ? 'active' : ''}" data-day="${i}">${day}</button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="action-row">
+            <button class="primary save-btn">Update Schedule</button>
+          </div>
+        `}
+      </div>
+    </div>
   `;
 
-  const expanded = document.createElement('div');
-  expanded.className = 'card-expanded';
-  
-  if (reminder.type === 'interval') {
-    expanded.innerHTML = `
-      <div class="setting-row">
-        <label>Interval (mins)</label>
-        <input type="number" class="interval-input" value="${reminder.intervalMinutes}" min="1">
-      </div>
-      <div class="action-row">
-        <button class="primary log-btn">${reminder.id === 'water' ? '+ Log' : 'Done'}</button>
-        <button class="secondary save-btn">Save</button>
-      </div>
-    `;
-  } else {
-    expanded.innerHTML = `
-      <div class="setting-row">
-        <label>Time</label>
-        <input type="time" class="time-input" value="${reminder.timeOfDay}">
-      </div>
-      <div class="setting-row">
-        <label>Days</label>
-        <div class="weekday-selector">
-          ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => `
-            <button class="day-btn ${reminder.workdays.includes(i) ? 'active' : ''}" data-day="${i}">${day}</button>
-          `).join('')}
-        </div>
-      </div>
-      <div class="action-row">
-        <button class="secondary save-btn">Save</button>
-      </div>
-    `;
-  }
+  // --- Listeners ---
 
-  card.appendChild(header);
-  card.appendChild(expanded);
-
-  // Toggle Listener
-  header.querySelector('input').addEventListener('change', async (e) => {
+  // Toggle Listener (Checkbox)
+  const toggleInput = card.querySelector('.toggle input');
+  toggleInput.addEventListener('change', async (e) => {
+    e.stopPropagation();
     const enabled = e.target.checked;
     await updateReminder(reminder.id, { enabled });
     chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled }, triggerNow: enabled });
   });
 
-  // Expand Listener
-  header.addEventListener('click', (e) => {
-    // Prevent expansion if clicking interactive elements
-    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.toggle') || e.target.classList.contains('slider')) {
-      return;
-    }
+  // Expand Listener (Card Body)
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.toggle')) return;
+    
+    // Close other cards first for a clean look
+    document.querySelectorAll('.card.open').forEach(c => {
+      if (c !== card) c.classList.remove('open');
+    });
+    
     card.classList.toggle('open');
   });
 
-  // Save Button Listener
-  const saveBtn = expanded.querySelector('.save-btn');
+  // Save Button
+  const saveBtn = card.querySelector('.save-btn');
   if (saveBtn) {
-    saveBtn.addEventListener('click', async () => {
+    saveBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       const updates = {};
       if (reminder.type === 'interval') {
-        const input = expanded.querySelector('.interval-input');
+        const input = card.querySelector('.interval-input');
         updates.intervalMinutes = Math.max(1, parseInt(input.value) || 1);
         input.value = updates.intervalMinutes;
       } else {
-        updates.timeOfDay = expanded.querySelector('.time-input').value;
-        const activeDays = Array.from(expanded.querySelectorAll('.day-btn.active')).map(btn => parseInt(btn.dataset.day));
-        updates.workdays = activeDays;
+        updates.timeOfDay = card.querySelector('.time-input').value;
+        updates.workdays = Array.from(card.querySelectorAll('.day-btn.active')).map(btn => parseInt(btn.dataset.day));
       }
       
-      const isEnabled = header.querySelector('input').checked;
+      const isEnabled = toggleInput.checked;
       await updateReminder(reminder.id, updates);
       chrome.runtime.sendMessage({ 
         action: 'createReminder', 
@@ -363,31 +371,32 @@ function createReminderCard(reminder, stats) {
     });
   }
 
-  // Day Button Listener (Fixed Time)
-  expanded.querySelectorAll('.day-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      btn.classList.toggle('active');
-    });
-  });
-
   // Log Button
-  const logBtn = expanded.querySelector('.log-btn');
+  const logBtn = card.querySelector('.log-btn');
   if (logBtn) {
-    logBtn.addEventListener('click', async () => {
+    logBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       const storage = await getStorage();
       if (!storage.stats[reminder.id]) {
-        storage.stats[reminder.id] = { todayCount: 0, lastResetDate: new Date().toISOString().split('T')[0] };
+        storage.stats[reminder.id] = { todayCount: 0, lastResetDate: getLocalDateString() };
       }
       storage.stats[reminder.id].todayCount++;
       await setStorage(storage);
       renderDashboard(storage);
       
-      const currentStats = storage.stats[reminder.id];
-      if (reminder.metadata.dailyTarget && currentStats.todayCount >= reminder.metadata.dailyTarget) {
+      if (reminder.metadata.dailyTarget && storage.stats[reminder.id].todayCount === reminder.metadata.dailyTarget) {
         triggerConfetti();
       }
     });
   }
+
+  // Day Buttons
+  card.querySelectorAll('.day-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      btn.classList.toggle('active');
+    });
+  });
 
   return card;
 }
