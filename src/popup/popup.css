@@ -167,7 +167,15 @@ button.primary:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .setting-row label {
@@ -202,6 +210,23 @@ button.primary:hover {
   align-items: center;
   justify-content: center;
   color: var(--color-text-muted);
+}
+
+.icon-btn-circle:hover {
+  background: var(--color-accent);
+  color: white;
+  transform: scale(1.1);
+}
+
+.donate-btn {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 14px;
+}
+
+.donate-btn:hover {
+  background: var(--color-danger);
+  color: white;
 }
 
 .day-btn.active {

@@ -57,6 +57,7 @@ async function init() {
     initFocusMode(storage);
     initNotes(storage);
     initAdvanced(storage);
+    initSupport();
 
     // Flush pending storage writes on close
     window.addEventListener('pagehide', () => debouncedSetStorage.flush());
@@ -112,6 +113,16 @@ function initAdvanced(storage) {
       <span class="log-level-${log.level}">${log.level}</span>: ${log.message}
     </div>
   `).join('');
+}
+
+function initSupport() {
+  const donateBtn = document.getElementById('donate-btn');
+  if (donateBtn) {
+    donateBtn.addEventListener('click', () => {
+      // Placeholder PayPal.me link - user should replace this with their own
+      window.open('https://paypal.me/', '_blank');
+    });
+  }
 }
 
 function initNotes(storage) {
