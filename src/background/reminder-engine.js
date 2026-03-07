@@ -1,4 +1,4 @@
-import { getStorage, setStorage } from '/src/shared/storage.js';
+import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString } from '/src/shared/storage.js';
 import { logInfo, logError } from '/src/shared/logger.js';
 
 /**
@@ -14,6 +14,15 @@ export async function initializeEngine() {
  * Creates/Updates an alarm for a reminder.
  */
 export async function createReminder(reminder, triggerNow = false) {
+  const storage = await getStorage();
+  if (!storage) return;
+
+  // Global Master Toggle Guard
+  if (!storage.settings.masterEnabled) {
+    await cancelReminder(reminder.id);
+    return;
+  }
+
   if (!reminder.enabled) {
     await cancelReminder(reminder.id);
     return;
@@ -74,8 +83,11 @@ export async function recreateAllReminders() {
 
   const reminders = Object.values(storage.reminders);
   for (const reminder of reminders) {
-    if (reminder.enabled) {
+    // Only schedule if the reminder is enabled AND the master toggle is on
+    if (reminder.enabled && storage.settings.masterEnabled) {
       await createReminder(reminder);
+    } else {
+      await cancelReminder(reminder.id);
     }
   }
 }
@@ -146,14 +158,10 @@ async function performMidnightReset() {
   const storage = await getStorage();
   if (!storage) return;
 
-  // Reset all daily counters
-  for (const id in storage.stats) {
-    storage.stats[id].todayCount = 0;
-    storage.stats[id].lastResetDate = new Date().toISOString().split('T')[0];
+  if (ensureDailyStatsReset(storage)) {
+    await setStorage(storage);
+    logInfo('Midnight reset performed via alarm');
   }
-
-  await setStorage(storage);
-  logInfo('Midnight reset performed');
 
   // Schedule next reset
   await scheduleMidnightReset();
@@ -213,7 +221,7 @@ async function dispatchNotification(ids) {
   
   chrome.notifications.create(notificationId, {
     type: 'basic',
-    iconUrl: '/public/icon128.png', 
+    iconUrl: '/icon128.png', 
     title: title,
     message: message,
     buttons: [
@@ -243,9 +251,10 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
     if (btnIdx === 0) { // Log/Done
       const storage = await getStorage();
       for (const id of ids) {
-        if (storage.stats[id]) {
-          storage.stats[id].todayCount++;
+        if (!storage.stats[id]) {
+          storage.stats[id] = { todayCount: 0, lastResetDate: getLocalDateString() };
         }
+        storage.stats[id].todayCount++;
       }
       await setStorage(storage);
       logInfo(`Acknowledge Done for: ${ids.join(', ')}`);

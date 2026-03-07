@@ -47,7 +47,7 @@ function handleFocusChange(focusUntil) {
       focusEndTimeout = setTimeout(() => {
         chrome.notifications.create('focus-end', {
           type: 'basic',
-          iconUrl: '/public/icon128.png',
+          iconUrl: '/icon128.png',
           title: 'Focus Mode Ended',
           message: 'Your focus session has completed. Reminders will now resume.',
           requireInteraction: true

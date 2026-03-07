@@ -104,11 +104,52 @@ export const DEFAULT_SCHEMA = {
   logs: []
 };
 
+/**
+ * Helper to get a YYYY-MM-DD date string in local time.
+ * @returns {string}
+ */
+export function getLocalDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Ensures that daily stats (counters) are reset if the date has changed.
+ * @param {Object} storage - The storage object to check and modify.
+ * @returns {boolean} - True if any stats were reset.
+ */
+export function ensureDailyStatsReset(storage) {
+  if (!storage || !storage.stats) return false;
+
+  const today = getLocalDateString();
+  let changed = false;
+
+  for (const id in storage.stats) {
+    if (storage.stats[id].lastResetDate !== today) {
+      storage.stats[id].todayCount = 0;
+      storage.stats[id].lastResetDate = today;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 export const STORAGE_KEY = "rhythmData";
 
 export async function getStorage() {
   const result = await chrome.storage.local.get(STORAGE_KEY);
-  return result[STORAGE_KEY] || null;
+  const data = result[STORAGE_KEY] || null;
+
+  if (data && ensureDailyStatsReset(data)) {
+    await setStorage(data);
+    console.log("Stats auto-reset for new day");
+  }
+
+  return data;
 }
 
 export async function setStorage(data) {

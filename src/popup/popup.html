@@ -1,14 +1,17 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rhythm</title>
-    <link rel="stylesheet" href="../styles/tokens.css" />
-    <link rel="stylesheet" href="popup.css" />
-  </head>
-  <body>
+    <link rel="stylesheet" href="../styles/tokens.css">
+    <link rel="stylesheet" href="popup.css">
+    <!-- Inline font import for reliability -->
+    <!-- Fonts are loaded locally in popup.css -->
+</head>
+<body>
     <div id="app">
+<<<<<<< HEAD
       <header>
         <h1>Rhythm</h1>
         <div class="header-actions">
@@ -34,33 +37,58 @@
       </div>
       <div id="notes-list"></div>
     </section>
+=======
+        <header>
+            <div class="logo-container">
+                <img src="../../icon128.png" alt="Rhythm Logo" class="logo-img">
+                <h1>Rhythm</h1>
+            </div>
+            <div id="theme-status" class="card-counter" style="font-size: 8px;">V1.0.0</div>
+        </header>
+>>>>>>> main
 
-      <section id="advanced-section">
-        <div class="section-header collapsible-trigger">
-          <h2>Advanced Settings</h2>
-          <span class="chevron">▾</span>
+        <div id="focus-banner" class="focus-banner">
+            <span id="focus-status" class="focus-timer">Normal Mode</span>
+            <button id="focus-toggle" class="focus-btn">Focus 1h</button>
         </div>
-        <div id="advanced-content" class="collapsible-content">
-          <div class="setting-row">
-            <label>Master Toggle</label>
-            <label class="toggle">
-              <input type="checkbox" id="master-toggle" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="btn-group">
-            <button id="export-btn" class="secondary">Export JSON</button>
-            <button id="reset-btn" class="danger">Reset Data</button>
-          </div>
-          <div id="debug-logs">
-            <h3>Debug Logs</h3>
-            <div id="log-list"></div>
-          </div>
-        </div>
-      </section>
 
-      <div id="confetti-container"></div>
+        <main id="dashboard">
+            <div class="empty-state">Loading your rhythm...</div>
+        </main>
+
+        <section id="notes-section" class="section-container">
+            <div class="section-header">
+                <h2>Quick Notes</h2>
+                <button id="add-note-btn" class="icon-btn-circle" aria-label="Add Note">+</button>
+            </div>
+            <div id="notes-list"></div>
+        </section>
+
+        <section id="advanced-section" class="section-container">
+            <button type="button" class="section-header collapsible-trigger" aria-expanded="false" aria-controls="advanced-content">
+                <h2>Settings</h2>
+                <span class="chevron">▼</span>
+            </button>
+            <div id="advanced-content" class="collapsible-content">
+                <div class="setting-row" style="margin-top: var(--space-3);">
+                    <label>Master Toggle</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="master-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="btn-group">
+                    <button id="export-btn" class="secondary">Export JSON</button>
+                    <button id="reset-btn" class="secondary danger-text">Reset Data</button>
+                </div>
+                <div id="debug-logs">
+                    <div id="log-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <div id="confetti-container"></div>
     </div>
     <script src="popup.js" type="module"></script>
-  </body>
+</body>
 </html>
