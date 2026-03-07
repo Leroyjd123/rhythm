@@ -1,4 +1,4 @@
-import { getStorage, setStorage, ensureDailyStatsReset } from '/src/shared/storage.js';
+import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString } from '/src/shared/storage.js';
 import { logInfo, logError } from '/src/shared/logger.js';
 
 /**
@@ -14,6 +14,15 @@ export async function initializeEngine() {
  * Creates/Updates an alarm for a reminder.
  */
 export async function createReminder(reminder, triggerNow = false) {
+  const storage = await getStorage();
+  if (!storage) return;
+
+  // Global Master Toggle Guard
+  if (!storage.settings.masterEnabled) {
+    await cancelReminder(reminder.id);
+    return;
+  }
+
   if (!reminder.enabled) {
     await cancelReminder(reminder.id);
     return;
@@ -212,7 +221,7 @@ async function dispatchNotification(ids) {
   
   chrome.notifications.create(notificationId, {
     type: 'basic',
-    iconUrl: '/public/icon128.png', 
+    iconUrl: '/icon128.png', 
     title: title,
     message: message,
     buttons: [

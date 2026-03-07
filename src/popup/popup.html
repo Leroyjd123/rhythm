@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../styles/tokens.css">
     <link rel="stylesheet" href="popup.css">
     <!-- Inline font import for reliability -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+    <!-- Fonts are loaded locally in popup.css -->
 </head>
 <body>
     <div id="app">
@@ -31,16 +31,16 @@
         <section id="notes-section" class="section-container">
             <div class="section-header">
                 <h2>Quick Notes</h2>
-                <button id="add-note-btn" class="icon-btn-circle">+</button>
+                <button id="add-note-btn" class="icon-btn-circle" aria-label="Add Note">+</button>
             </div>
             <div id="notes-list"></div>
         </section>
 
         <section id="advanced-section" class="section-container">
-            <div class="section-header collapsible-trigger">
+            <button type="button" class="section-header collapsible-trigger" aria-expanded="false" aria-controls="advanced-content">
                 <h2>Settings</h2>
                 <span class="chevron">▼</span>
-            </div>
+            </button>
             <div id="advanced-content" class="collapsible-content">
                 <div class="setting-row" style="margin-top: var(--space-3);">
                     <label>Master Toggle</label>

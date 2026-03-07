@@ -77,16 +77,17 @@ function initAdvanced(storage) {
   const resetBtn = document.getElementById('reset-btn');
   const logList = document.getElementById('log-list');
 
-  trigger.addEventListener('click', () => {
-    section.classList.toggle('open');
-  });
-
   masterToggle.checked = storage.settings.masterEnabled;
   masterToggle.addEventListener('change', async (e) => {
     storage.settings.masterEnabled = e.target.checked;
     await setStorage(storage);
     // Notify background
     chrome.runtime.sendMessage({ action: 'recreateAllReminders' });
+  });
+
+  trigger.addEventListener('click', () => {
+    const isOpen = section.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', isOpen);
   });
 
   exportBtn.addEventListener('click', () => {
@@ -122,18 +123,26 @@ function initNotes(storage) {
     notesList.innerHTML = '';
     const sortedNotes = [...storage.notes].sort((a, b) => a.completed - b.completed);
     
-    sortedNotes.forEach((note, index) => {
+    sortedNotes.forEach((note) => {
       const item = document.createElement('div');
       item.className = `note-item ${note.completed ? 'completed' : ''}`;
-      item.innerHTML = `
-        <input type="checkbox" class="note-checkbox" ${note.completed ? 'checked' : ''}>
-        <textarea class="note-textarea" placeholder="New note..." rows="1">${note.text}</textarea>
-        <button class="delete-note-btn icon-btn">×</button>
-      `;
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'note-checkbox';
+      checkbox.checked = note.completed;
+      checkbox.ariaLabel = 'Complete note';
 
-      const checkbox = item.querySelector('.note-checkbox');
-      const textarea = item.querySelector('.note-textarea');
-      const deleteBtn = item.querySelector('.delete-note-btn');
+      const textarea = document.createElement('textarea');
+      textarea.className = 'note-textarea';
+      textarea.placeholder = 'New note...';
+      textarea.rows = 1;
+      textarea.value = note.text;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-note-btn icon-btn';
+      deleteBtn.textContent = '×';
+      deleteBtn.ariaLabel = 'Delete note';
 
       checkbox.addEventListener('change', async () => {
         note.completed = checkbox.checked;
@@ -156,6 +165,9 @@ function initNotes(storage) {
         renderNotes();
       });
 
+      item.appendChild(checkbox);
+      item.appendChild(textarea);
+      item.appendChild(deleteBtn);
       notesList.appendChild(item);
     });
   };
@@ -269,6 +281,10 @@ function renderDashboard(storage) {
 function createReminderCard(reminder, stats) {
   const card = document.createElement('div');
   card.className = `card ${reminder.id}-card`;
+  card.tabIndex = 0;
+  card.role = 'button';
+  card.ariaExpanded = 'false';
+  card.ariaLabel = `Reminder: ${reminder.id}`;
   
   const hasDailyTarget = reminder.metadata && reminder.metadata.dailyTarget;
   const counterHtml = stats ? `
@@ -327,19 +343,35 @@ function createReminderCard(reminder, stats) {
     e.stopPropagation();
     const enabled = e.target.checked;
     await updateReminder(reminder.id, { enabled });
+    // Keep triggerNow: true only for explicit manual enabling
     chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled }, triggerNow: enabled });
   });
+
+  const toggleOpen = () => {
+    // Close other cards first for a clean look
+    document.querySelectorAll('.card.open').forEach(c => {
+      if (c !== card) {
+        c.classList.remove('open');
+        c.ariaExpanded = 'false';
+      }
+    });
+    
+    const isOpen = card.classList.toggle('open');
+    card.ariaExpanded = isOpen;
+  };
 
   // Expand Listener (Card Body)
   card.addEventListener('click', (e) => {
     if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.toggle')) return;
-    
-    // Close other cards first for a clean look
-    document.querySelectorAll('.card.open').forEach(c => {
-      if (c !== card) c.classList.remove('open');
-    });
-    
-    card.classList.toggle('open');
+    toggleOpen();
+  });
+
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.toggle')) return;
+      e.preventDefault();
+      toggleOpen();
+    }
   });
 
   // Save Button
@@ -354,7 +386,13 @@ function createReminderCard(reminder, stats) {
         input.value = updates.intervalMinutes;
       } else {
         updates.timeOfDay = card.querySelector('.time-input').value;
-        updates.workdays = Array.from(card.querySelectorAll('.day-btn.active')).map(btn => parseInt(btn.dataset.day));
+        const selectedDays = Array.from(card.querySelectorAll('.day-btn.active')).map(btn => parseInt(btn.dataset.day));
+        
+        if (selectedDays.length === 0) {
+          alert('Please select at least one workday.');
+          return;
+        }
+        updates.workdays = selectedDays;
       }
       
       const isEnabled = toggleInput.checked;
@@ -362,7 +400,7 @@ function createReminderCard(reminder, stats) {
       chrome.runtime.sendMessage({ 
         action: 'createReminder', 
         reminder: { ...reminder, ...updates, enabled: isEnabled }, 
-        triggerNow: isEnabled 
+        triggerNow: false // Only reschedule without immediate firing
       });
       
       const originalText = saveBtn.textContent;
