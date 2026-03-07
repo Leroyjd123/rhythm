@@ -1,47 +1,52 @@
 :root {
-  /* Colors - Light Mode */
-  --color-bg: #f6f7f5;
-  --color-surface: #ecedeb;
+  /* Colors - Light Mode (Serene & Professional) */
+  --color-bg: #fdfdfd;
+  --color-surface: #ffffff;
   --color-surface-elevated: #ffffff;
-  --color-text-primary: #2b2c2f;
-  --color-text-muted: #6f7378;
-  --color-accent: #7faf9b;
-  --color-accent-soft: rgba(127, 175, 155, 0.12);
-  --color-border-soft: rgba(0, 0, 0, 0.06);
+  --color-text-primary: #1a1b1e;
+  --color-text-muted: #64748b;
+  --color-accent: #36548a; /* User preferred primary color */
+  --color-accent-soft: rgba(54, 84, 138, 0.08);
+  --color-border-soft: rgba(0, 0, 0, 0.05);
+  --color-success: #10b981;
+  --color-danger: #ef4444;
 
-  /* Spacing */
+  /* Spacing - Relaxed hierarchy */
   --space-1: 4px;
   --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 32px;
+  --space-6: 48px;
 
-  /* Radius */
+  /* Radius - Modern rounded corners */
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-lg: 20px;
 
-  /* Shadows */
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.04);
+  /* Shadows - Layered and soft */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.06);
 
   /* Typography */
-  --font-primary:
-    "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --text-title: 16px;
+  --font-primary: 'Inter', system-ui, -apple-system, sans-serif;
+  --text-title: 18px;
   --text-body: 14px;
   --text-small: 12px;
+  --text-tiny: 10px;
 }
 
 [data-theme="dark"] {
-  /* Colors - Dark Mode */
-  --color-bg: #1e1f22;
-  --color-surface: #2a2c31;
-  --color-surface-elevated: #32343a;
-  --color-text-primary: #e4e6eb;
-  --color-text-muted: #9da1a8;
-  --color-accent: #8fc3ac;
-  --color-accent-soft: rgba(143, 195, 172, 0.18);
-  --color-border-soft: rgba(255, 255, 255, 0.08);
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.3);
+  /* Colors - Dark Mode (Deep & Elegant) */
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-elevated: #334155;
+  --color-text-primary: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-accent: #38bdf8;
+  --color-accent-soft: rgba(56, 189, 248, 0.1);
+  --color-border-soft: rgba(255, 255, 255, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.3);
 }

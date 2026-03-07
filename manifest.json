@@ -6,14 +6,23 @@
   "permissions": ["storage", "alarms", "notifications"],
   "action": {
     "default_popup": "src/popup/popup.html",
-    "default_title": "Rhythm"
+    "default_title": "Rhythm",
+    "default_icon": {
+      "16": "icon128.png",
+      "32": "icon128.png",
+      "48": "icon128.png",
+      "128": "icon128.png"
+    }
   },
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"
   },
   "icons": {
-    "128": "public/icon128.png"
+    "16": "icon128.png",
+    "32": "icon128.png",
+    "48": "icon128.png",
+    "128": "icon128.png"
   },
   "offline_enabled": true
 }
