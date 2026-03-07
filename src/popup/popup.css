@@ -184,6 +184,11 @@ input:checked + .slider:before {
 .header-actions {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
+}
+
+#theme-status {
+  font-size: 8px;
 }
 
 .setting-row label {

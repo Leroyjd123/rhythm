@@ -120,9 +120,9 @@ function initSupport() {
   const donateBtn = document.getElementById('donate-btn');
   if (donateBtn) {
     donateBtn.addEventListener('click', () => {
-      // Open support link in new tab - replace with your own PayPal link
-      const supportUrl = 'https://www.paypal.com/paypalme/YOUR_USERNAME_HERE'; 
-      chrome.tabs.create({ url: supportUrl });
+      // Support link - Replace YOUR_USERNAME with your PayPal.me username
+      const supportUrl = 'https://www.paypal.com/paypalme/YOUR_USERNAME'; 
+      window.open(supportUrl, '_blank');
     });
   }
 }
