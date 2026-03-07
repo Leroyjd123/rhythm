@@ -176,7 +176,6 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-<<<<<<< HEAD
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border-soft);
@@ -185,125 +184,6 @@ input:checked + .slider:before {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-}
-
-.setting-row label {
-  font-size: var(--text-small);
-  color: var(--color-text-muted);
-}
-
-.setting-row input {
-  width: 60px;
-  padding: 4px;
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-small);
-  background: var(--color-surface-elevated);
-  color: var(--color-text-primary);
-}
-
-.weekday-selector {
-  display: flex;
-  gap: 4px;
-}
-
-.day-btn {
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--color-border-soft);
-  border-radius: 4px;
-  background: var(--color-surface-elevated);
-  font-size: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-}
-
-.icon-btn-circle:hover {
-  background: var(--color-accent);
-  color: white;
-  transform: scale(1.1);
-}
-
-.donate-btn {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-  font-size: 14px;
-}
-
-.donate-btn:hover {
-  background: var(--color-danger);
-  color: white;
-}
-
-.day-btn.active {
-  background-color: var(--color-accent);
-  color: white;
-  border-color: var(--color-accent);
-}
-
-/* Focus Mode */
-.focus-banner {
-  background-color: var(--color-accent-soft);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  margin-bottom: var(--space-4);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.focus-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.focus-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-accent);
-  font-weight: 700;
-}
-
-.focus-timer {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.focus-btn {
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: none;
-  background-color: var(--color-accent);
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.btn-stop {
-  background-color: #e26d5c;
-}
-
-/* Notes Section */
-#notes-section {
-  margin-top: var(--space-5);
-  border-top: 1px solid var(--color-border-soft);
-  padding-top: var(--space-4);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-=======
->>>>>>> main
-  margin-bottom: var(--space-3);
 }
 
 .setting-row label {
