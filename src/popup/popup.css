@@ -290,22 +290,46 @@ button.danger-text:hover {
   letter-spacing: 0.05em;
 }
 
-/* Notes - Card-like items */
-.note-item {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-2);
+/* Notes */
+.notes-header-actions {
   display: flex;
-  align-items: center;
   gap: var(--space-2);
-  transition: all 0.2s;
+  align-items: center;
 }
 
-.note-item:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-sm);
+.notes-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-soft);
+  transition: background 0.15s;
+}
+
+.note-item:last-child {
+  border-bottom: none;
+}
+
+.note-item.completed .note-textarea {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.note-checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
 }
 
 .note-textarea {
@@ -313,11 +337,13 @@ button.danger-text:hover {
   background: none;
   border: none;
   resize: none;
+  overflow: hidden;
   font-family: inherit;
   font-size: var(--text-body);
   color: var(--color-text-primary);
-  min-height: 24px;
-  padding: 4px 0;
+  line-height: 1.5;
+  padding: 0;
+  min-height: 22px;
 }
 
 .note-textarea:focus {
@@ -325,10 +351,16 @@ button.danger-text:hover {
 }
 
 .delete-note-btn {
+  flex-shrink: 0;
   opacity: 0;
   transition: opacity 0.2s;
   font-size: 18px;
+  line-height: 1;
   color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
 }
 
 .note-item:hover .delete-note-btn,
@@ -340,6 +372,7 @@ button.danger-text:hover {
   opacity: 1;
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .delete-note-btn:hover {
@@ -386,8 +419,9 @@ section {
 }
 
 .icon-btn-circle {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: var(--color-accent-soft);
   color: var(--color-accent);
@@ -396,15 +430,55 @@ section {
   justify-content: center;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  transition: all 0.2s;
+  line-height: 1;
+  transition: background 0.2s, color 0.2s;
 }
 
 .icon-btn-circle:hover {
   background: var(--color-accent);
   color: white;
-  transform: scale(1.1);
+}
+
+/* Button group row in settings */
+.btn-group {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* Confetti animation */
+#confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.confetti {
+  position: absolute;
+  top: -10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confetti-fall 1.8s ease-in forwards;
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(500px) rotate(720deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* Advanced / Settings */
@@ -418,7 +492,7 @@ section {
   border-top: 1px solid var(--color-border-soft);
 }
 
-#advanced-section.open .collapsible-content {
+.section-container.open .collapsible-content {
   display: block;
 }
 
@@ -427,16 +501,12 @@ section {
   transition: transform 0.3s;
 }
 
-#advanced-section.open .chevron {
+.section-container.open .chevron {
   transform: rotate(180deg);
 }
 
 #notes-list {
-  padding: 0 var(--space-3) var(--space-3) var(--space-3);
-}
-
-#notes-list:empty {
-  display: none;
+  padding: 0;
 }
 
 #debug-logs {

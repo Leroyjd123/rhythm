@@ -5,7 +5,11 @@ export const DEFAULT_SCHEMA = {
     focusUntil: null,
     timezone: 'auto',
     masterEnabled: true,
-    soundEnabled: true
+    soundEnabled: true,
+    advancedOpen: false,
+    notesOpen: true,
+    wellbeingOpen: true,
+    workScheduleOpen: true
   },
   reminders: {
     water: {
@@ -173,6 +177,14 @@ export async function initializeStorage() {
   for (const key of Object.keys(DEFAULT_SCHEMA.settings)) {
     if (!(key in data.settings)) {
       data.settings[key] = DEFAULT_SCHEMA.settings[key];
+      changed = true;
+    }
+  }
+
+  // Merge any top-level keys like notes, logs, stats that might be missing
+  for (const key of Object.keys(DEFAULT_SCHEMA)) {
+    if (!(key in data)) {
+      data[key] = DEFAULT_SCHEMA[key];
       changed = true;
     }
   }

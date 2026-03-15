@@ -32,11 +32,16 @@
         </main>
 
         <section id="notes-section" class="section-container">
-            <div class="section-header">
+            <div class="section-header collapsible-trigger" aria-expanded="false" aria-controls="notes-content" role="button" tabindex="0">
                 <h2>Quick Notes</h2>
-                <button id="add-note-btn" class="icon-btn-circle" aria-label="Add Note">+</button>
+                <div class="notes-header-actions">
+                    <button id="add-note-btn" class="icon-btn-circle" aria-label="Add Note">+</button>
+                    <span class="chevron">▼</span>
+                </div>
             </div>
-            <div id="notes-list"></div>
+            <div id="notes-content" class="collapsible-content">
+                <div id="notes-list"></div>
+            </div>
         </section>
 
         <section id="advanced-section" class="section-container">

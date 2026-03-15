@@ -234,10 +234,10 @@ async function dispatchNotification(ids) {
     requireInteraction: true
   });
   logInfo(`Notification dispatched: ${notificationId}`);
-  // Auto-dismiss after 5 minutes using alarms (replaces setTimeout for SW longevity)
+  // Auto-dismiss after 30 seconds (0.5 min — Chrome 120+ minimum is 30s)
   const alarmName = `clear-notif:${notificationId}`;
   await chrome.alarms.create(alarmName, {
-    delayInMinutes: 5
+    delayInMinutes: 0.5
   });
 
   if (storage.settings.soundEnabled) {
@@ -245,7 +245,14 @@ async function dispatchNotification(ids) {
   }
 }
 
-// Global listener for notification buttons
+// Cleans up the auto-dismiss alarm when the user closes a notification via X
+chrome.notifications.onClosed.addListener(async (notifId, byUser) => {
+  if (byUser) {
+    await chrome.alarms.clear(`clear-notif:${notifId}`);
+  }
+});
+
+// Global listener for notification action buttons
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
   try {
     // Clear the auto-dismiss alarm if someone clicks a button

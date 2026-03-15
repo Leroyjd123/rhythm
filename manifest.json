@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rhythm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A lightweight, offline-first schedule discipline and wellbeing assistant.",
   "permissions": ["storage", "alarms", "notifications", "offscreen"],
   "action": {
@@ -24,5 +24,6 @@
     "48": "icon128.png",
     "128": "icon128.png"
   },
-  "offline_enabled": true
+  "offline_enabled": true,
+  "minimum_chrome_version": "120"
 }
