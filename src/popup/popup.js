@@ -215,7 +215,7 @@ function initNotes(storage) {
 
       const textarea = document.createElement('textarea');
       textarea.className = 'note-textarea';
-      textarea.placeholder = 'Write a note...';
+      textarea.placeholder = 'Write your note...';
       textarea.rows = 1;
       textarea.value = note.text;
 
@@ -236,8 +236,23 @@ function initNotes(storage) {
         debouncedSetStorage(storage);
       });
 
-      textarea.addEventListener('blur', () => {
+      textarea.addEventListener('blur', async () => {
         debouncedSetStorage.flush();
+        // Delete empty notes on blur
+        if (note.text.trim() === '') {
+          storage.notes = storage.notes.filter(n => n.id !== note.id);
+          await setStorage(storage);
+          renderNotes();
+        }
+      });
+
+      textarea.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          debouncedSetStorage.flush();
+          // Create new note and focus
+          await addBtn.click();
+        }
       });
 
       deleteBtn.addEventListener('click', async () => {
@@ -257,8 +272,8 @@ function initNotes(storage) {
   };
 
   addBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    storage.notes.push({
+    if (e) e.stopPropagation();
+    storage.notes.unshift({
       id: Date.now().toString(),
       text: '',
       completed: false,
@@ -266,6 +281,21 @@ function initNotes(storage) {
     });
     await setStorage(storage);
     renderNotes();
+    
+    // Auto-focus the newly created note (which is at the top because of unshift)
+    const newTextarea = notesList.querySelector('.note-item:first-child .note-textarea');
+    if (newTextarea) {
+      setTimeout(() => {
+        newTextarea.focus();
+        // If the accordion was closed, open it naturally
+        if (!notesSection.classList.contains('open')) {
+          notesSection.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
+          storage.settings.notesOpen = true;
+          debouncedSetStorage(storage);
+        }
+      }, 50);
+    }
   });
 
   renderNotes();
