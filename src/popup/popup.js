@@ -1,4 +1,4 @@
-import { getStorage, updateReminder, setStorage, getLocalDateString } from '/src/shared/storage.js';
+import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage } from '/src/shared/storage.js';
 
 /**
  * Debounce helper to limit storage writes
@@ -127,6 +127,7 @@ function initAdvanced(storage) {
   resetBtn.addEventListener('click', async () => {
     if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
       await chrome.storage.local.clear();
+      await initializeStorage(); // Re-initialize so popup reloads cleanly
       window.location.reload();
     }
   });
