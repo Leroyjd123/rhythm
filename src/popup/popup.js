@@ -78,9 +78,9 @@ function initAdvanced(storage) {
   const trigger = section.querySelector('.collapsible-trigger');
   
   // Set default state
-  const isAdvancedOpen = storage.settings.advancedOpen !== false;
+  const isAdvancedOpen = storage.settings.advancedOpen;
   if (isAdvancedOpen) section.classList.add('open');
-  trigger.setAttribute('aria-expanded', isAdvancedOpen);
+  trigger.setAttribute('aria-expanded', !!isAdvancedOpen);
   
   const masterToggle = document.getElementById('master-toggle');
   const exportBtn = document.getElementById('export-btn');
@@ -166,9 +166,9 @@ function initNotes(storage) {
   const notesList = document.getElementById('notes-list');
 
   // Accordion logic
-  const isNotesOpen = storage.settings.notesOpen !== false;
+  const isNotesOpen = storage.settings.notesOpen;
   if (isNotesOpen) notesSection.classList.add('open');
-  trigger.setAttribute('aria-expanded', isNotesOpen);
+  trigger.setAttribute('aria-expanded', !!isNotesOpen);
 
   const toggleNotes = (e) => {
     if (e.target.closest('#add-note-btn')) return;
@@ -326,13 +326,13 @@ function renderDashboard(storage) {
     const section = document.createElement('section');
     section.className = 'section-container dashboard-section';
     
-    const isOpen = storage.settings[`${sectionId}Open`] !== false;
+    const isOpen = storage.settings[`${sectionId}Open`];
     if (isOpen) section.classList.add('open');
 
     const header = document.createElement('button');
     header.type = 'button';
     header.className = 'section-header collapsible-trigger';
-    header.setAttribute('aria-expanded', isOpen);
+    header.setAttribute('aria-expanded', !!isOpen);
     header.setAttribute('aria-controls', `${sectionId}-content`);
     
     header.innerHTML = `

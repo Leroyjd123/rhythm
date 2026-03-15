@@ -5,7 +5,12 @@ export const DEFAULT_SCHEMA = {
     focusUntil: null,
     timezone: 'auto',
     masterEnabled: true,
-    soundEnabled: true
+    soundEnabled: true,
+    advancedOpen: false,
+    notesOpen: false,
+    wellbeingOpen: false,
+    workScheduleOpen: false,
+    isFirstLoad: true
   },
   reminders: {
     water: {
@@ -188,6 +193,15 @@ export async function initializeStorage() {
   // Always keep timezone current (resolve 'auto' placeholder)
   if (data.settings.timezone === 'auto' || !data.settings.timezone) {
     data.settings.timezone = detectedTimezone;
+    changed = true;
+  }
+
+  // Handle first load state for accordions
+  if (data.settings.isFirstLoad) {
+    data.settings.notesOpen = true;
+    data.settings.wellbeingOpen = true;
+    data.settings.workScheduleOpen = true;
+    data.settings.isFirstLoad = false;
     changed = true;
   }
 

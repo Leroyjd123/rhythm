@@ -346,6 +346,12 @@ button.danger-text:hover {
   color: var(--color-danger);
 }
 
+.notes-header-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 /* Sections */
 section {
   margin-top: var(--space-5);
