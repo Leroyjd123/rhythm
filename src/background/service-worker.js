@@ -33,7 +33,10 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     const oldData = changes.rhythmData.oldValue;
 
     // Guard: newData is undefined when storage is cleared (e.g. reset)
-    if (!newData || !newData.settings) return;
+    if (!newData || !newData.settings) {
+      handleFocusChange(null);
+      return;
+    }
 
     if (newData.settings.focusUntil !== (oldData?.settings?.focusUntil ?? null)) {
       handleFocusChange(newData.settings.focusUntil);

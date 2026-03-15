@@ -56,6 +56,10 @@ async function init() {
     // Apply saved theme before rendering
     document.documentElement.setAttribute('data-theme', storage.settings.theme === 'dark' ? 'dark' : '');
 
+    // Show live version from manifest
+    const versionEl = document.getElementById('theme-status');
+    if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+
     renderDashboard(storage);
     initFocusMode(storage);
     initNotes(storage);
@@ -134,6 +138,7 @@ function initAdvanced(storage) {
 
   resetBtn.addEventListener('click', async () => {
     if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+      debouncedSetStorage.cancel();
       await chrome.storage.local.clear();
       await initializeStorage(); // Re-initialize so popup reloads cleanly
       window.location.reload();
@@ -184,30 +189,40 @@ function initNotes(storage) {
   trigger.addEventListener('click', toggleNotes);
   trigger.addEventListener('keydown', toggleNotes);
 
+  const autoResize = (el) => {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  };
+
   const renderNotes = () => {
     notesList.innerHTML = '';
     const sortedNotes = [...storage.notes].sort((a, b) => a.completed - b.completed);
-    
+
+    if (sortedNotes.length === 0) {
+      notesList.innerHTML = '<div class="notes-empty">No notes yet. Tap + to add one.</div>';
+      return;
+    }
+
     sortedNotes.forEach((note) => {
       const item = document.createElement('div');
-      item.className = `note-item ${note.completed ? 'completed' : ''}`;
-      
+      item.className = `note-item${note.completed ? ' completed' : ''}`;
+
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'note-checkbox';
       checkbox.checked = note.completed;
-      checkbox.ariaLabel = 'Complete note';
+      checkbox.setAttribute('aria-label', 'Mark note complete');
 
       const textarea = document.createElement('textarea');
       textarea.className = 'note-textarea';
-      textarea.placeholder = 'New note...';
+      textarea.placeholder = 'Write a note...';
       textarea.rows = 1;
       textarea.value = note.text;
 
       const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-note-btn icon-btn';
+      deleteBtn.className = 'delete-note-btn';
       deleteBtn.textContent = '×';
-      deleteBtn.ariaLabel = 'Delete note';
+      deleteBtn.setAttribute('aria-label', 'Delete note');
 
       checkbox.addEventListener('change', async () => {
         note.completed = checkbox.checked;
@@ -216,6 +231,7 @@ function initNotes(storage) {
       });
 
       textarea.addEventListener('input', () => {
+        autoResize(textarea);
         note.text = textarea.value;
         debouncedSetStorage(storage);
       });
@@ -234,6 +250,9 @@ function initNotes(storage) {
       item.appendChild(textarea);
       item.appendChild(deleteBtn);
       notesList.appendChild(item);
+
+      // Apply initial height after DOM insertion
+      autoResize(textarea);
     });
   };
 

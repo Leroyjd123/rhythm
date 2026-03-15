@@ -290,22 +290,46 @@ button.danger-text:hover {
   letter-spacing: 0.05em;
 }
 
-/* Notes - Card-like items */
-.note-item {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-2);
+/* Notes */
+.notes-header-actions {
   display: flex;
-  align-items: center;
   gap: var(--space-2);
-  transition: all 0.2s;
+  align-items: center;
 }
 
-.note-item:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-sm);
+.notes-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-soft);
+  transition: background 0.15s;
+}
+
+.note-item:last-child {
+  border-bottom: none;
+}
+
+.note-item.completed .note-textarea {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.note-checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
 }
 
 .note-textarea {
@@ -313,11 +337,13 @@ button.danger-text:hover {
   background: none;
   border: none;
   resize: none;
+  overflow: hidden;
   font-family: inherit;
   font-size: var(--text-body);
   color: var(--color-text-primary);
-  min-height: 24px;
-  padding: 4px 0;
+  line-height: 1.5;
+  padding: 0;
+  min-height: 22px;
 }
 
 .note-textarea:focus {
@@ -325,10 +351,16 @@ button.danger-text:hover {
 }
 
 .delete-note-btn {
+  flex-shrink: 0;
   opacity: 0;
   transition: opacity 0.2s;
   font-size: 18px;
+  line-height: 1;
   color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
 }
 
 .note-item:hover .delete-note-btn,
@@ -340,16 +372,11 @@ button.danger-text:hover {
   opacity: 1;
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .delete-note-btn:hover {
   color: var(--color-danger);
-}
-
-.notes-header-actions {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
 }
 
 /* Sections */
@@ -447,6 +474,13 @@ section {
   100% { transform: translateY(500px) rotate(720deg); opacity: 0; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Advanced / Settings */
 .collapsible-trigger:hover {
   background: var(--color-accent-soft);
@@ -472,11 +506,7 @@ section {
 }
 
 #notes-list {
-  padding: 0 var(--space-3) var(--space-3) var(--space-3);
-}
-
-#notes-list:empty {
-  display: none;
+  padding: 0;
 }
 
 #debug-logs {
