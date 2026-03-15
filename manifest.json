@@ -3,7 +3,7 @@
   "name": "Rhythm",
   "version": "1.0.0",
   "description": "A lightweight, offline-first schedule discipline and wellbeing assistant.",
-  "permissions": ["storage", "alarms", "notifications"],
+  "permissions": ["storage", "alarms", "notifications", "offscreen"],
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_title": "Rhythm",

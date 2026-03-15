@@ -1,5 +1,6 @@
 import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString } from '/src/shared/storage.js';
 import { logInfo, logError } from '/src/shared/logger.js';
+import { playNotificationSound } from '/src/background/audio.js';
 
 /**
  * Main entry point for the reminder engine.
@@ -173,7 +174,8 @@ async function performMidnightReset() {
 export async function scheduleMidnightReset() {
   const now = new Date();
   const nextMidnight = new Date();
-  nextMidnight.setHours(24, 0, 0, 0);
+  nextMidnight.setDate(nextMidnight.getDate() + 1);
+  nextMidnight.setHours(0, 0, 0, 0);
 
   await chrome.alarms.create('midnightReset', {
     when: nextMidnight.getTime()
@@ -237,40 +239,48 @@ async function dispatchNotification(ids) {
   await chrome.alarms.create(alarmName, {
     delayInMinutes: 5
   });
+
+  if (storage.settings.soundEnabled) {
+    await playNotificationSound();
+  }
 }
 
 // Global listener for notification buttons
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
-  // Clear the auto-dismiss alarm if someone clicks a button
-  await chrome.alarms.clear(`clear-notif:${notifId}`);
+  try {
+    // Clear the auto-dismiss alarm if someone clicks a button
+    await chrome.alarms.clear(`clear-notif:${notifId}`);
 
-  if (notifId.startsWith('ids:')) {
-    const parts = notifId.split(':');
-    const ids = parts[1].split(',');
+    if (notifId.startsWith('ids:')) {
+      const parts = notifId.split(':');
+      const ids = parts[1].split(',');
 
-    if (btnIdx === 0) { // Log/Done
-      const storage = await getStorage();
-      for (const id of ids) {
-        if (!storage.stats[id]) {
-          storage.stats[id] = { todayCount: 0, lastResetDate: getLocalDateString() };
+      if (btnIdx === 0) { // Log/Done
+        const storage = await getStorage();
+        for (const id of ids) {
+          if (!storage.stats[id]) {
+            storage.stats[id] = { todayCount: 0, lastResetDate: getLocalDateString() };
+          }
+          storage.stats[id].todayCount++;
         }
-        storage.stats[id].todayCount++;
+        await setStorage(storage);
+        logInfo(`Acknowledge Done for: ${ids.join(', ')}`);
+      } else if (btnIdx === 1) { // Snooze
+        for (const id of ids) {
+          await handleSnooze(id);
+        }
       }
-      await setStorage(storage);
-      logInfo(`Acknowledge Done for: ${ids.join(', ')}`);
-    } else if (btnIdx === 1) { // Snooze
-      for (const id of ids) {
-        await handleSnooze(id);
-      }
+      chrome.notifications.clear(notifId);
     }
-    chrome.notifications.clear(notifId);
+  } catch (err) {
+    logError('Error handling notification button click', { notifId, btnIdx, err: err.message });
   }
 });
 
 /**
  * Helper: Calculates the next timestamp for a fixed time of day.
  */
-function calculateNextFixedTimestamp(timeOfDay, workdays) {
+export function calculateNextFixedTimestamp(timeOfDay, workdays) {
   const [hours, minutes] = timeOfDay.split(':').map(Number);
   let now = new Date();
   let target = new Date();
