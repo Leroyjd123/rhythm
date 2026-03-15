@@ -289,8 +289,8 @@ function initNotes(storage) {
         newTextarea.focus();
         // If the accordion was closed, open it naturally
         if (!notesSection.classList.contains('open')) {
-          const isOpen = notesSection.classList.add('open');
-          trigger.setAttribute('aria-expanded', true);
+          notesSection.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
           storage.settings.notesOpen = true;
           debouncedSetStorage(storage);
         }
