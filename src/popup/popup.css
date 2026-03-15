@@ -399,6 +399,7 @@ section {
 
 .section-header {
   width: 100%;
+  box-sizing: border-box;
   border: none;
   font-family: inherit;
   padding: var(--space-3);
