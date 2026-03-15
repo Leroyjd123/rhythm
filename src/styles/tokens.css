@@ -10,6 +10,8 @@
   --color-border-soft: rgba(0, 0, 0, 0.05);
   --color-success: #10b981;
   --color-danger: #ef4444;
+  --color-toggle-bg: #cbd5e1;
+  --color-toggle-knob: #ffffff;
 
   /* Spacing - Relaxed hierarchy */
   --space-1: 4px;
@@ -47,6 +49,8 @@
   --color-accent: #38bdf8;
   --color-accent-soft: rgba(56, 189, 248, 0.1);
   --color-border-soft: rgba(255, 255, 255, 0.06);
+  --color-toggle-bg: #475569;
+  --color-toggle-knob: #f1f5f9;
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
