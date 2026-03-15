@@ -177,6 +177,14 @@ export async function initializeStorage() {
     }
   }
 
+  // Merge any top-level keys like notes, logs, stats that might be missing
+  for (const key of Object.keys(DEFAULT_SCHEMA)) {
+    if (!(key in data)) {
+      data[key] = DEFAULT_SCHEMA[key];
+      changed = true;
+    }
+  }
+
   // Always keep timezone current (resolve 'auto' placeholder)
   if (data.settings.timezone === 'auto' || !data.settings.timezone) {
     data.settings.timezone = detectedTimezone;

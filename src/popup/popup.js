@@ -76,6 +76,12 @@ async function init() {
 function initAdvanced(storage) {
   const section = document.getElementById('advanced-section');
   const trigger = section.querySelector('.collapsible-trigger');
+  
+  // Set default state
+  const isAdvancedOpen = storage.settings.advancedOpen !== false;
+  if (isAdvancedOpen) section.classList.add('open');
+  trigger.setAttribute('aria-expanded', isAdvancedOpen);
+  
   const masterToggle = document.getElementById('master-toggle');
   const exportBtn = document.getElementById('export-btn');
   const resetBtn = document.getElementById('reset-btn');
@@ -107,6 +113,8 @@ function initAdvanced(storage) {
   trigger.addEventListener('click', () => {
     const isOpen = section.classList.toggle('open');
     trigger.setAttribute('aria-expanded', isOpen);
+    storage.settings.advancedOpen = isOpen;
+    debouncedSetStorage(storage);
   });
 
   exportBtn.addEventListener('click', () => {
@@ -152,8 +160,29 @@ function initSupport() {
 }
 
 function initNotes(storage) {
+  const notesSection = document.getElementById('notes-section');
+  const trigger = notesSection.querySelector('.collapsible-trigger');
   const addBtn = document.getElementById('add-note-btn');
   const notesList = document.getElementById('notes-list');
+
+  // Accordion logic
+  const isNotesOpen = storage.settings.notesOpen !== false;
+  if (isNotesOpen) notesSection.classList.add('open');
+  trigger.setAttribute('aria-expanded', isNotesOpen);
+
+  const toggleNotes = (e) => {
+    if (e.target.closest('#add-note-btn')) return;
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.type === 'keydown') e.preventDefault();
+    
+    const isOpen = notesSection.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', isOpen);
+    storage.settings.notesOpen = isOpen;
+    debouncedSetStorage(storage);
+  };
+
+  trigger.addEventListener('click', toggleNotes);
+  trigger.addEventListener('keydown', toggleNotes);
 
   const renderNotes = () => {
     notesList.innerHTML = '';
@@ -208,7 +237,8 @@ function initNotes(storage) {
     });
   };
 
-  addBtn.addEventListener('click', async () => {
+  addBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
     storage.notes.push({
       id: Date.now().toString(),
       text: '',
@@ -292,26 +322,50 @@ function renderDashboard(storage) {
   const wellbeingReminders = ['water', 'posture', 'break', 'eye', 'stand', 'stretch', 'breathing'];
   const workReminders = ['workStart', 'workLunch', 'workEnd'];
 
-  const createSection = (title, reminderIds) => {
-    const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    const h3 = document.createElement('h3');
-    h3.textContent = title;
-    h3.className = 'dashboard-section-title';
-    section.appendChild(h3);
+  const createSection = (title, reminderIds, sectionId) => {
+    const section = document.createElement('section');
+    section.className = 'section-container dashboard-section';
+    
+    const isOpen = storage.settings[`${sectionId}Open`] !== false;
+    if (isOpen) section.classList.add('open');
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'section-header collapsible-trigger';
+    header.setAttribute('aria-expanded', isOpen);
+    header.setAttribute('aria-controls', `${sectionId}-content`);
+    
+    header.innerHTML = `
+      <h2>${title}</h2>
+      <span class="chevron">▼</span>
+    `;
+
+    const content = document.createElement('div');
+    content.id = `${sectionId}-content`;
+    content.className = 'collapsible-content';
+
+    header.addEventListener('click', () => {
+      const isNowOpen = section.classList.toggle('open');
+      header.setAttribute('aria-expanded', isNowOpen);
+      storage.settings[`${sectionId}Open`] = isNowOpen;
+      debouncedSetStorage(storage);
+    });
 
     reminderIds.forEach(id => {
       const reminder = storage.reminders[id];
       const stats = storage.stats[id];
       if (reminder) {
-        section.appendChild(createReminderCard(reminder, stats));
+        content.appendChild(createReminderCard(reminder, stats));
       }
     });
+
+    section.appendChild(header);
+    section.appendChild(content);
     return section;
   };
 
-  dashboard.appendChild(createSection('Wellbeing', wellbeingReminders));
-  dashboard.appendChild(createSection('Work Schedule', workReminders));
+  dashboard.appendChild(createSection('Wellbeing', wellbeingReminders, 'wellbeing'));
+  dashboard.appendChild(createSection('Work Schedule', workReminders, 'workSchedule'));
 }
 
 function createReminderCard(reminder, stats) {

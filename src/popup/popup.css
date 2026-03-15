@@ -452,7 +452,7 @@ section {
   border-top: 1px solid var(--color-border-soft);
 }
 
-#advanced-section.open .collapsible-content {
+.section-container.open .collapsible-content {
   display: block;
 }
 
@@ -461,13 +461,8 @@ section {
   transition: transform 0.3s;
 }
 
-#advanced-section.open .chevron {
+.section-container.open .chevron {
   transform: rotate(180deg);
-}
-
-/* Notes section header should not look clickable (no collapsible action) */
-#notes-section .section-header {
-  cursor: default;
 }
 
 #notes-list {
