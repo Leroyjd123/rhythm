@@ -240,6 +240,14 @@ function initNotes(storage) {
         debouncedSetStorage.flush();
       });
 
+      textarea.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          debouncedSetStorage.flush();
+          addBtn.click();
+        }
+      });
+
       deleteBtn.addEventListener('click', async () => {
         storage.notes = storage.notes.filter(n => n.id !== note.id);
         await setStorage(storage);
