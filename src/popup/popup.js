@@ -53,6 +53,9 @@ async function init() {
       return;
     }
 
+    // Apply saved theme before rendering
+    document.documentElement.setAttribute('data-theme', storage.settings.theme === 'dark' ? 'dark' : '');
+
     renderDashboard(storage);
     initFocusMode(storage);
     initNotes(storage);
@@ -86,18 +89,39 @@ function initAdvanced(storage) {
     chrome.runtime.sendMessage({ action: 'recreateAllReminders' });
   });
 
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle.checked = storage.settings.theme === 'dark';
+  themeToggle.addEventListener('change', async (e) => {
+    storage.settings.theme = e.target.checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', e.target.checked ? 'dark' : '');
+    await setStorage(storage);
+  });
+
+  const soundToggle = document.getElementById('sound-toggle');
+  soundToggle.checked = storage.settings.soundEnabled !== false;
+  soundToggle.addEventListener('change', async (e) => {
+    storage.settings.soundEnabled = e.target.checked;
+    await setStorage(storage);
+  });
+
   trigger.addEventListener('click', () => {
     const isOpen = section.classList.toggle('open');
     trigger.setAttribute('aria-expanded', isOpen);
   });
 
   exportBtn.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(storage, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `rhythm-backup-${getLocalDateString()}.json`;
-    a.click();
+    try {
+      const blob = new Blob([JSON.stringify(storage, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rhythm-backup-${getLocalDateString()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Export failed. Please try again.');
+    }
   });
 
   resetBtn.addEventListener('click', async () => {
@@ -120,8 +144,7 @@ function initSupport() {
   const donateBtn = document.getElementById('donate-btn');
   if (donateBtn) {
     donateBtn.addEventListener('click', () => {
-      // Support link - Replace YOUR_USERNAME with your PayPal.me username
-      const supportUrl = 'https://www.paypal.com/paypalme/YOUR_USERNAME'; 
+      const supportUrl = 'https://paypal.me/leroyjd';
       window.open(supportUrl, '_blank');
     });
   }

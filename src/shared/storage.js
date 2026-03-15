@@ -4,7 +4,8 @@ export const DEFAULT_SCHEMA = {
     theme: 'light',
     focusUntil: null,
     timezone: 'auto',
-    masterEnabled: true
+    masterEnabled: true,
+    soundEnabled: true
   },
   reminders: {
     water: {
@@ -157,12 +158,32 @@ export async function setStorage(data) {
 }
 
 export async function initializeStorage() {
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const data = await getStorage();
-  if (!data || data.schemaVersion !== DEFAULT_SCHEMA.schemaVersion) {
-    await setStorage(DEFAULT_SCHEMA);
+
+  if (!data) {
+    const schema = { ...DEFAULT_SCHEMA, settings: { ...DEFAULT_SCHEMA.settings, timezone: detectedTimezone } };
+    await setStorage(schema);
     console.log("Storage initialized with default schema");
-    return DEFAULT_SCHEMA;
+    return schema;
   }
+
+  // Merge any new settings keys added since user first installed (avoids data loss)
+  let changed = false;
+  for (const key of Object.keys(DEFAULT_SCHEMA.settings)) {
+    if (!(key in data.settings)) {
+      data.settings[key] = DEFAULT_SCHEMA.settings[key];
+      changed = true;
+    }
+  }
+
+  // Always keep timezone current (resolve 'auto' placeholder)
+  if (data.settings.timezone === 'auto' || !data.settings.timezone) {
+    data.settings.timezone = detectedTimezone;
+    changed = true;
+  }
+
+  if (changed) await setStorage(data);
   return data;
 }
 
