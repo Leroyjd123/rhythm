@@ -7,7 +7,7 @@
 ![Chrome](https://img.shields.io/badge/chrome-%3E%3D120-orange)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-Download Now on Chrome Web Store: (https://chromewebstore.google.com/detail/rhythm/dnobdcbjbpbianiijkcefkpiegbmmodh?authuser=0&hl=en)
+Download Now on Chrome Web Store: https://chromewebstore.google.com/detail/rhythm/dnobdcbjbpbianiijkcefkpiegbmmodh?authuser=0&hl=en
 
 ---
 
