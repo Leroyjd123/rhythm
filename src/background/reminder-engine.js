@@ -13,20 +13,29 @@ export async function initializeEngine() {
 
 /**
  * Creates/Updates an alarm for a reminder.
+ *
+ * options.preserveExisting: keep an already-scheduled alarm instead of
+ * resetting it. Used on startup so interval countdowns survive browser
+ * restarts (alarms persist across sessions; recreating them here would
+ * restart every countdown from zero and make reminders fire late).
  */
-export async function createReminder(reminder, triggerNow = false) {
+export async function createReminder(reminder, triggerNow = false, options = {}) {
+  const { preserveExisting = false } = options;
   const storage = await getStorage();
   if (!storage) return;
 
   // Global Master Toggle Guard
-  if (!storage.settings.masterEnabled) {
+  if (!storage.settings.masterEnabled || !reminder.enabled) {
     await cancelReminder(reminder.id);
     return;
   }
 
-  if (!reminder.enabled) {
-    await cancelReminder(reminder.id);
-    return;
+  if (preserveExisting) {
+    const existing = await chrome.alarms.get(reminder.id);
+    if (existing && isAlarmStillValid(existing, reminder)) {
+      logInfo(`Reminder alarm preserved: ${reminder.id}`);
+      return;
+    }
   }
 
   // Guard: Cancel existing alarm before recreating
@@ -43,6 +52,34 @@ export async function createReminder(reminder, triggerNow = false) {
   }
 
   logInfo(`Reminder created/updated: ${reminder.id}`, { type: reminder.type, triggerNow });
+}
+
+/**
+ * Looks up a reminder in storage and (re)schedules it.
+ * Message handlers use this so scheduling always reflects persisted state
+ * instead of a possibly-stale object sent from the popup.
+ */
+export async function createReminderById(id, triggerNow = false) {
+  const storage = await getStorage();
+  const reminder = storage?.reminders?.[id];
+  if (!reminder) {
+    logError(`createReminderById: unknown reminder "${id}"`);
+    return;
+  }
+  await createReminder(reminder, triggerNow);
+}
+
+/**
+ * Checks whether an existing alarm still matches the reminder's settings.
+ */
+function isAlarmStillValid(alarm, reminder) {
+  if (reminder.type === 'interval') {
+    return alarm.periodInMinutes === Math.max(1, reminder.intervalMinutes || 1);
+  }
+  // fixedTime: only keep alarms that still point at a future occurrence.
+  // A past scheduledTime means the occurrence was missed while the browser
+  // was closed — reschedule to the next one rather than firing hours late.
+  return alarm.scheduledTime > Date.now();
 }
 
 /**
@@ -86,7 +123,8 @@ export async function recreateAllReminders() {
   for (const reminder of reminders) {
     // Only schedule if the reminder is enabled AND the master toggle is on
     if (reminder.enabled && storage.settings.masterEnabled) {
-      await createReminder(reminder);
+      // Preserve in-flight alarms so restarts don't reset interval countdowns
+      await createReminder(reminder, false, { preserveExisting: true });
     } else {
       await cancelReminder(reminder.id);
     }
@@ -111,6 +149,17 @@ export async function handleAlarm(alarm) {
     return;
   }
 
+  if (alarm.name === 'focus-end') {
+    chrome.notifications.create('focus-end', {
+      type: 'basic',
+      iconUrl: '/icon128.png',
+      title: 'Focus Mode Ended',
+      message: 'Your focus session has completed. Reminders will now resume.',
+      requireInteraction: true
+    });
+    return;
+  }
+
   if (alarm.name.startsWith('snooze-')) {
     const id = alarm.name.replace('snooze-', '');
     await dispatchNotification([id]);
@@ -119,27 +168,30 @@ export async function handleAlarm(alarm) {
 
   // For regular reminders
   const storage = await getStorage();
-  const reminder = storage.reminders[alarm.name];
+  const reminder = storage?.reminders?.[alarm.name];
+  if (!reminder) return;
 
-  if (reminder && reminder.enabled) {
-    // Check Focus Mode
-    if (storage.settings.focusUntil && Date.now() < storage.settings.focusUntil) {
-      logInfo(`Reminder suppressed by Focus Mode: ${reminder.id}`);
-      return;
-    }
-
-    if (!storage.settings.masterEnabled) {
-      logInfo(`Reminder suppressed by Master Toggle: ${reminder.id}`);
-      return;
-    }
-
-    await bufferedNotification(reminder.id);
-
-    // For fixedTime, we need to reschedule manually
-    if (reminder.type === 'fixedTime') {
-      await scheduleFixedReminder(reminder);
-    }
+  if (!reminder.enabled || !storage.settings.masterEnabled) {
+    // Stale alarm for a reminder that has since been turned off — drop it
+    logInfo(`Stale alarm cancelled: ${reminder.id}`);
+    await cancelReminder(reminder.id);
+    return;
   }
+
+  // Reschedule fixed-time reminders BEFORE any suppression checks.
+  // Otherwise a work reminder suppressed once (e.g. by Focus Mode) would
+  // never fire again, because its one-shot alarm was already consumed.
+  if (reminder.type === 'fixedTime') {
+    await scheduleFixedReminder(reminder);
+  }
+
+  // Check Focus Mode
+  if (storage.settings.focusUntil && Date.now() < storage.settings.focusUntil) {
+    logInfo(`Reminder suppressed by Focus Mode: ${reminder.id}`);
+    return;
+  }
+
+  await bufferedNotification(reminder.id);
 }
 
 /**
@@ -184,23 +236,34 @@ export async function scheduleMidnightReset() {
 
 /**
  * Buffer for grouped notifications.
+ *
+ * Alarms that fire in the same instant (e.g. 15/30/60-minute intervals
+ * aligning) are collected for a short window and shown as ONE grouped
+ * notification instead of several. The buffer returns a promise that the
+ * alarm handler awaits, so the pending work keeps the service worker alive
+ * until the notification is actually dispatched.
  */
 let notificationBuffer = [];
-let notificationTimeout = null;
+let notificationFlush = null;
 
-async function bufferedNotification(id) {
+function bufferedNotification(id) {
   notificationBuffer.push(id);
 
-  if (notificationTimeout) {
-    clearTimeout(notificationTimeout);
+  if (!notificationFlush) {
+    notificationFlush = new Promise((resolve) => {
+      setTimeout(() => {
+        const ids = [...new Set(notificationBuffer)];
+        notificationBuffer = [];
+        notificationFlush = null;
+        dispatchNotification(ids).then(resolve, (err) => {
+          logError('Notification dispatch failed', { err: err?.message });
+          resolve();
+        });
+      }, 500);
+    });
   }
 
-  notificationTimeout = setTimeout(async () => {
-    const ids = [...new Set(notificationBuffer)];
-    notificationBuffer = [];
-    notificationTimeout = null;
-    await dispatchNotification(ids);
-  }, 1000); // 1 second buffer
+  return notificationFlush;
 }
 
 /**
@@ -208,14 +271,26 @@ async function bufferedNotification(id) {
  */
 async function dispatchNotification(ids) {
   const storage = await getStorage();
+  if (!storage) return;
   const reminderDetails = ids.map(id => storage.reminders[id]).filter(Boolean);
 
   if (reminderDetails.length === 0) return;
 
+  // Replace any Rhythm notifications still on screen so unacknowledged
+  // ones don't pile up into a stack of duplicates.
+  const open = await chrome.notifications.getAll();
+  for (const openId of Object.keys(open || {})) {
+    if (openId.startsWith('ids:')) {
+      chrome.notifications.clear(openId);
+      await chrome.alarms.clear(`clear-notif:${openId}`);
+    }
+  }
+
+  const label = (id) => id.charAt(0).toUpperCase() + id.slice(1);
   const isMulti = reminderDetails.length > 1;
-  const title = isMulti ? 'Rhythm: Multiple Reminders' : `Rhythm: ${reminderDetails[0].id}`;
+  const title = isMulti ? 'Rhythm: Multiple Reminders' : `Rhythm: ${label(reminderDetails[0].id)}`;
   const message = isMulti
-    ? reminderDetails.map(r => `• ${r.id}`).join('\n')
+    ? reminderDetails.map(r => `• ${label(r.id)}`).join('\n')
     : `It's time for your ${reminderDetails[0].id} reminder.`;
 
   // Encode IDs into notificationId to retrieve them in button handler

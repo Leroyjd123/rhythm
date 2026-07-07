@@ -61,6 +61,7 @@ async function init() {
     if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
 
     renderDashboard(storage);
+    startNextReminderTicker();
     initFocusMode(storage);
     initNotes(storage);
     initAdvanced(storage);
@@ -417,9 +418,71 @@ function renderDashboard(storage) {
   dashboard.appendChild(createSection('Work Schedule', workReminders, 'workSchedule'));
 }
 
+/**
+ * Formats the timestamp of the next reminder occurrence for display.
+ */
+function formatNextReminder(ts) {
+  const diffMs = ts - Date.now();
+  if (diffMs < 60000) return 'less than a minute';
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 60) return `${mins} min left`;
+
+  const target = new Date(ts);
+  const time = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const now = new Date();
+  if (target.toDateString() === now.toDateString()) return `today at ${time}`;
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (target.toDateString() === tomorrow.toDateString()) return `tomorrow at ${time}`;
+
+  return `${target.toLocaleDateString([], { weekday: 'short' })} at ${time}`;
+}
+
+/**
+ * Reads the reminder's scheduled alarm (and any pending snooze) and
+ * updates the "Next reminder" label on the card.
+ */
+async function refreshNextReminderLabel(card) {
+  const el = card.querySelector('.next-reminder-value');
+  if (!el) return;
+
+  const reminderId = card.dataset.reminderId;
+  if (!card.querySelector('.toggle input').checked) {
+    el.textContent = 'Off';
+    return;
+  }
+
+  const [main, snooze] = await Promise.all([
+    chrome.alarms.get(reminderId),
+    chrome.alarms.get(`snooze-${reminderId}`)
+  ]);
+  const times = [main, snooze]
+    .filter(a => a && a.scheduledTime > Date.now())
+    .map(a => a.scheduledTime);
+
+  if (times.length === 0) {
+    // Enabled but no alarm scheduled — master toggle is off, or the
+    // background is mid-reschedule; the periodic refresh will catch up.
+    el.textContent = 'Paused';
+    return;
+  }
+
+  el.textContent = formatNextReminder(Math.min(...times));
+}
+
+function startNextReminderTicker() {
+  const refreshOpenCards = () => {
+    document.querySelectorAll('.card.open').forEach(card => refreshNextReminderLabel(card));
+  };
+  refreshOpenCards();
+  setInterval(refreshOpenCards, 1000);
+}
+
 function createReminderCard(reminder, stats) {
   const card = document.createElement('div');
   card.className = `card ${reminder.id}-card`;
+  card.dataset.reminderId = reminder.id;
   card.tabIndex = 0;
   card.role = 'button';
   card.ariaExpanded = 'false';
@@ -444,6 +507,10 @@ function createReminderCard(reminder, stats) {
     </div>
     <div class="card-expanded">
       <div class="expanded-content">
+        <div class="setting-row">
+          <label>Next reminder</label>
+          <span class="next-reminder-value">–</span>
+        </div>
         ${reminder.type === 'interval' ? `
           <div class="setting-row">
             <label>Interval (minutes)</label>
@@ -483,7 +550,9 @@ function createReminderCard(reminder, stats) {
     const enabled = e.target.checked;
     await updateReminder(reminder.id, { enabled });
     // Keep triggerNow: true only for explicit manual enabling
-    chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled }, triggerNow: enabled });
+    chrome.runtime.sendMessage({ action: 'createReminder', id: reminder.id, triggerNow: enabled });
+    // Give the background a moment to (re)schedule, then update the label
+    setTimeout(() => refreshNextReminderLabel(card), 400);
   });
 
   const toggleOpen = () => {
@@ -494,9 +563,10 @@ function createReminderCard(reminder, stats) {
         c.ariaExpanded = 'false';
       }
     });
-    
+
     const isOpen = card.classList.toggle('open');
     card.ariaExpanded = isOpen;
+    if (isOpen) refreshNextReminderLabel(card);
   };
 
   // Expand Listener (Card Body)
@@ -534,14 +604,14 @@ function createReminderCard(reminder, stats) {
         updates.workdays = selectedDays;
       }
       
-      const isEnabled = toggleInput.checked;
       await updateReminder(reminder.id, updates);
-      chrome.runtime.sendMessage({ 
-        action: 'createReminder', 
-        reminder: { ...reminder, ...updates, enabled: isEnabled }, 
+      chrome.runtime.sendMessage({
+        action: 'createReminder',
+        id: reminder.id,
         triggerNow: false // Only reschedule without immediate firing
       });
-      
+      setTimeout(() => refreshNextReminderLabel(card), 400);
+
       const originalText = saveBtn.textContent;
       saveBtn.textContent = 'Saved!';
       setTimeout(() => saveBtn.textContent = originalText, 1500);

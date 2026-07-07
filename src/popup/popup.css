@@ -209,6 +209,13 @@ input.interval-input, input.time-input {
   color: var(--color-text-primary);
 }
 
+.next-reminder-value {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
 .action-row {
   display: flex;
   gap: var(--space-2);

@@ -1,6 +1,6 @@
 import { initializeStorage } from '/src/shared/storage.js';
 import { logInfo } from '/src/shared/logger.js';
-import { initializeEngine, handleAlarm, createReminder, recreateAllReminders } from '/src/background/reminder-engine.js';
+import { initializeEngine, handleAlarm, createReminderById, recreateAllReminders } from '/src/background/reminder-engine.js';
 
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorage();
@@ -19,13 +19,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'createReminder') {
-    createReminder(message.reminder, message.triggerNow);
+    // Re-read the reminder from storage so scheduling always uses the
+    // persisted state, never a stale object from the popup.
+    const id = message.id || message.reminder?.id;
+    createReminderById(id, message.triggerNow);
   } else if (message.action === 'recreateAllReminders') {
     recreateAllReminders();
   }
 });
-
-let focusEndTimeout = null;
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area === 'local' && changes.rhythmData) {
@@ -34,32 +35,25 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
 
     // Guard: newData is undefined when storage is cleared (e.g. reset)
     if (!newData || !newData.settings) {
-      handleFocusChange(null);
+      await handleFocusChange(null);
       return;
     }
 
     if (newData.settings.focusUntil !== (oldData?.settings?.focusUntil ?? null)) {
-      handleFocusChange(newData.settings.focusUntil);
+      await handleFocusChange(newData.settings.focusUntil);
     }
   }
 });
 
-function handleFocusChange(focusUntil) {
-  if (focusEndTimeout) clearTimeout(focusEndTimeout);
+/**
+ * Schedules (or clears) the end-of-focus notification via chrome.alarms.
+ * A setTimeout would silently die when the service worker is suspended,
+ * which is guaranteed to happen during a one-hour focus session.
+ */
+async function handleFocusChange(focusUntil) {
+  await chrome.alarms.clear('focus-end');
 
-  if (focusUntil) {
-    const diff = focusUntil - Date.now();
-    if (diff > 0) {
-      focusEndTimeout = setTimeout(() => {
-        chrome.notifications.create('focus-end', {
-          type: 'basic',
-          iconUrl: '/icon128.png',
-          title: 'Focus Mode Ended',
-          message: 'Your focus session has completed. Reminders will now resume.',
-          requireInteraction: true
-        });
-      }, diff);
-    }
+  if (focusUntil && focusUntil > Date.now()) {
+    await chrome.alarms.create('focus-end', { when: focusUntil });
   }
 }
-
