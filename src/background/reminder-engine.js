@@ -292,17 +292,23 @@ async function dispatchNotification(ids) {
   const message = isMulti
     ? reminderDetails.map(r => `• ${label(r.id)}`).join('\n')
     : `It's time for your ${reminderDetails[0].id} reminder.`;
+  const doneTitle = isMulti
+    ? 'Mark All Done'
+    : (reminderDetails[0].id === 'water' ? '+ Log Water' : 'Mark as Done');
 
   // Encode IDs into notificationId to retrieve them in button handler
   const notificationId = `ids:${ids.join(',')}:${Date.now()}`;
-  
+
+  // Chrome allows at most 2 notification buttons, so "skip" is handled by
+  // clicking the notification body (see onClicked below).
   chrome.notifications.create(notificationId, {
     type: 'basic',
-    iconUrl: '/icon128.png', 
+    iconUrl: '/icon128.png',
     title: title,
     message: message,
+    contextMessage: 'Click to skip',
     buttons: [
-      { title: 'Log/Done' },
+      { title: doneTitle },
       { title: 'Snooze (5m)' }
     ],
     priority: 2,
@@ -325,6 +331,15 @@ chrome.notifications.onClosed.addListener(async (notifId, byUser) => {
   if (byUser) {
     await chrome.alarms.clear(`clear-notif:${notifId}`);
   }
+});
+
+// Clicking the notification body = Skip: dismiss without logging or
+// snoozing; the reminder simply waits for its next scheduled occurrence.
+chrome.notifications.onClicked.addListener(async (notifId) => {
+  if (!notifId.startsWith('ids:')) return;
+  await chrome.alarms.clear(`clear-notif:${notifId}`);
+  chrome.notifications.clear(notifId);
+  logInfo(`Reminder skipped: ${notifId}`);
 });
 
 // Global listener for notification action buttons

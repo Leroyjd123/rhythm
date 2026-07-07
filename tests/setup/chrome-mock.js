@@ -22,6 +22,7 @@ global.chrome = {
     clear: () => {},
     getAll: async () => ({}),
     onButtonClicked: { addListener: () => {} },
+    onClicked: { addListener: () => {} },
     onClosed: { addListener: () => {} }
   },
   runtime: {
