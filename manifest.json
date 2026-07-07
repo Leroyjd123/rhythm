@@ -3,7 +3,7 @@
   "name": "Rhythm – Wellness Companion",
   "short_name": "Rhythm",
   "version": "1.5.0",
-  "description": "Water, posture, eye-rest and break reminders plus a Pomodoro focus timer. A lightweight, offline wellness companion for your workday.",
+  "description": "Water, posture, eye-rest and break reminders plus a Pomodoro focus timer. A lightweight, offline wellness companion.",
   "permissions": ["storage", "alarms", "notifications", "offscreen"],
   "action": {
     "default_popup": "src/popup/popup.html",

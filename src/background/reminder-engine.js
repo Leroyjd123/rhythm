@@ -1,4 +1,5 @@
-import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString, getReminderLabel } from '/src/shared/storage.js';
+import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString } from '/src/shared/storage.js';
+import { t, setLanguage, getReminderLabel } from '/src/shared/i18n.js';
 import { logInfo, logError } from '/src/shared/logger.js';
 import { playNotificationSound } from '/src/background/audio.js';
 
@@ -151,14 +152,13 @@ export async function handleAlarm(alarm) {
 
   if (alarm.name === 'focus-end') {
     const storage = await getStorage();
+    setLanguage(storage?.settings?.language);
     const minutes = storage?.settings?.focusDurationMinutes;
     chrome.notifications.create('focus-end', {
       type: 'basic',
       iconUrl: '/icon128.png',
-      title: 'Focus Session Complete 🎉',
-      message: minutes
-        ? `Great work — your ${minutes}-minute focus session is done. Reminders will now resume.`
-        : 'Your focus session has completed. Reminders will now resume.',
+      title: t('focusDoneTitle'),
+      message: minutes ? t('focusDoneMsg', { minutes }) : t('focusDoneFallback'),
       priority: 2,
       requireInteraction: true
     });
@@ -294,22 +294,23 @@ async function dispatchNotification(ids) {
     }
   }
 
+  setLanguage(storage.settings?.language);
   const isMulti = reminderDetails.length > 1;
-  const title = isMulti ? 'Rhythm: Multiple Reminders' : `Rhythm: ${getReminderLabel(reminderDetails[0].id)}`;
+  const title = isMulti ? t('multipleTitle') : `Rhythm: ${getReminderLabel(reminderDetails[0].id)}`;
   const message = isMulti
     ? reminderDetails.map(r => `• ${getReminderLabel(r.id)}`).join('\n')
-    : `It's time for your ${getReminderLabel(reminderDetails[0].id)} reminder.`;
+    : t('timeFor', { name: getReminderLabel(reminderDetails[0].id) });
 
   // Work-schedule (fixed-time) reminders have nothing to log, so they get
   // Snooze + Skip. Interval reminders get Done + Snooze, with body-click
   // as skip (Chrome allows at most 2 notification buttons).
   const allFixedTime = reminderDetails.every(r => r.type === 'fixedTime');
   const doneTitle = isMulti
-    ? 'Mark All Done'
-    : (reminderDetails[0].id === 'water' ? '+ Log Water' : 'Mark as Done');
+    ? t('markAllDone')
+    : (reminderDetails[0].id === 'water' ? t('logWater') : t('markDone'));
   const buttons = allFixedTime
-    ? [{ title: 'Snooze (5m)' }, { title: 'Skip' }]
-    : [{ title: doneTitle }, { title: 'Snooze (5m)' }];
+    ? [{ title: t('snooze5') }, { title: t('skip') }]
+    : [{ title: doneTitle }, { title: t('snooze5') }];
 
   // Encode IDs into notificationId to retrieve them in button handler
   const notificationId = `ids:${ids.join(',')}:${Date.now()}`;
@@ -319,7 +320,7 @@ async function dispatchNotification(ids) {
     iconUrl: '/icon128.png',
     title: title,
     message: message,
-    contextMessage: 'Click to skip',
+    contextMessage: t('clickToSkip'),
     buttons: buttons,
     priority: 2,
     requireInteraction: true

@@ -23,19 +23,19 @@
       </header>
 
         <div id="focus-banner" class="focus-banner">
-            <span id="focus-status" class="focus-timer">Focus</span>
+            <span id="focus-status" class="focus-timer" data-i18n="focus">Focus</span>
             <div id="focus-chips" class="focus-chips" role="group" aria-label="Start a focus session">
                 <button class="focus-chip" data-minutes="15">15m</button>
                 <button class="focus-chip" data-minutes="30">30m</button>
                 <button class="focus-chip" data-minutes="60">1h</button>
-                <button id="focus-custom-btn" class="focus-chip">Custom</button>
+                <button id="focus-custom-btn" class="focus-chip" data-i18n="custom">Custom</button>
             </div>
             <div id="focus-custom" class="focus-custom" hidden>
-                <input id="focus-custom-input" type="number" min="1" max="720" placeholder="min" aria-label="Focus duration in minutes">
-                <button id="focus-custom-start" class="focus-chip">Start</button>
+                <input id="focus-custom-input" type="number" min="1" max="720" placeholder="min" data-i18n-placeholder="minPlaceholder" aria-label="Focus duration in minutes">
+                <button id="focus-custom-start" class="focus-chip" data-i18n="start">Start</button>
                 <button id="focus-custom-cancel" class="focus-chip" aria-label="Cancel">×</button>
             </div>
-            <button id="focus-toggle" class="focus-btn" hidden>End</button>
+            <button id="focus-toggle" class="focus-btn" data-i18n="end" hidden>End</button>
         </div>
 
         <main id="dashboard">
@@ -44,7 +44,7 @@
 
         <section id="notes-section" class="section-container">
             <div class="section-header collapsible-trigger" aria-expanded="false" aria-controls="notes-content" role="button" tabindex="0">
-                <h2>Quick Notes</h2>
+                <h2 data-i18n="quickNotes">Quick Notes</h2>
                 <div class="notes-header-actions">
                     <button id="add-note-btn" class="icon-btn-circle" aria-label="Add Note">+</button>
                     <span class="chevron">▼</span>
@@ -57,34 +57,38 @@
 
         <section id="advanced-section" class="section-container">
             <button type="button" class="section-header collapsible-trigger" aria-expanded="false" aria-controls="advanced-content">
-                <h2>Settings</h2>
+                <h2 data-i18n="settings">Settings</h2>
                 <span class="chevron">▼</span>
             </button>
             <div id="advanced-content" class="collapsible-content">
                 <div class="setting-row" style="margin-top: var(--space-3);">
-                    <label>Master Toggle</label>
+                    <label data-i18n="masterToggle">Master Toggle</label>
                     <label class="toggle">
                         <input type="checkbox" id="master-toggle">
                         <span class="slider"></span>
                     </label>
                 </div>
                 <div class="setting-row">
-                    <label for="theme-toggle">Dark Mode</label>
+                    <label for="theme-toggle" data-i18n="darkMode">Dark Mode</label>
                     <label class="toggle">
                         <input type="checkbox" id="theme-toggle">
                         <span class="slider"></span>
                     </label>
                 </div>
                 <div class="setting-row">
-                    <label for="sound-toggle">Sound</label>
+                    <label for="sound-toggle" data-i18n="sound">Sound</label>
                     <label class="toggle">
                         <input type="checkbox" id="sound-toggle">
                         <span class="slider"></span>
                     </label>
                 </div>
+                <div class="setting-row">
+                    <label for="language-select" data-i18n="language">Language</label>
+                    <select id="language-select"></select>
+                </div>
                 <div class="btn-group">
-                    <button id="export-btn" class="secondary">Export JSON</button>
-                    <button id="reset-btn" class="secondary danger-text">Reset Data</button>
+                    <button id="export-btn" class="secondary" data-i18n="exportJson">Export JSON</button>
+                    <button id="reset-btn" class="secondary danger-text" data-i18n="resetData">Reset Data</button>
                 </div>
                 <div id="debug-logs">
                     <div id="log-list"></div>

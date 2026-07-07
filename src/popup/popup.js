@@ -1,4 +1,5 @@
-import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage, getReminderLabel } from '/src/shared/storage.js';
+import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage } from '/src/shared/storage.js';
+import { t, setLanguage, isRTL, getLocale, getWeekdays, getReminderLabel, LANGUAGES } from '/src/shared/i18n.js';
 
 /**
  * Debounce helper to limit storage writes
@@ -53,7 +54,11 @@ async function init() {
       return;
     }
 
-    // Apply saved theme before rendering
+    // Apply saved language and theme before rendering
+    setLanguage(storage.settings.language);
+    document.documentElement.lang = storage.settings.language || 'en';
+    document.documentElement.dir = isRTL() ? 'rtl' : 'ltr';
+    localizeStaticText();
     document.documentElement.setAttribute('data-theme', storage.settings.theme === 'dark' ? 'dark' : '');
 
     // Show live version from manifest
@@ -89,6 +94,16 @@ async function init() {
     console.error('Failed to initialize popup:', err);
     document.body.innerHTML = '<div style="padding:20px; color:red;">Error loading extension data. Please restart Chrome or reload the extension.</div>';
   }
+}
+
+/** Applies translations to static HTML marked with data-i18n attributes. */
+function localizeStaticText() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
 }
 
 function initAdvanced(storage) {
@@ -128,6 +143,20 @@ function initAdvanced(storage) {
     await setStorage(storage);
   });
 
+  const langSelect = document.getElementById('language-select');
+  for (const [code, name] of Object.entries(LANGUAGES)) {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = name;
+    langSelect.appendChild(option);
+  }
+  langSelect.value = storage.settings.language || 'en';
+  langSelect.addEventListener('change', async (e) => {
+    storage.settings.language = e.target.value;
+    await setStorage(storage);
+    window.location.reload(); // Re-render everything in the new language
+  });
+
   trigger.addEventListener('click', () => {
     const isOpen = section.classList.toggle('open');
     trigger.setAttribute('aria-expanded', isOpen);
@@ -151,7 +180,7 @@ function initAdvanced(storage) {
   });
 
   resetBtn.addEventListener('click', async () => {
-    if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+    if (confirm(t('confirmReset'))) {
       debouncedSetStorage.cancel();
       await chrome.storage.local.clear();
       await initializeStorage(); // Re-initialize so popup reloads cleanly
@@ -213,7 +242,7 @@ function initNotes(storage) {
     const sortedNotes = [...storage.notes].sort((a, b) => a.completed - b.completed);
 
     if (sortedNotes.length === 0) {
-      notesList.innerHTML = '<div class="notes-empty">No notes yet. Tap + to add one.</div>';
+      notesList.innerHTML = `<div class="notes-empty">${t('noNotes')}</div>`;
       return;
     }
 
@@ -229,7 +258,7 @@ function initNotes(storage) {
 
       const textarea = document.createElement('textarea');
       textarea.className = 'note-textarea';
-      textarea.placeholder = 'Write your note...';
+      textarea.placeholder = t('notePlaceholder');
       textarea.rows = 1;
       textarea.value = note.text;
 
@@ -348,7 +377,7 @@ function initFocusMode(storage) {
       clearInterval(timerInterval);
       timerInterval = setInterval(updateTimer, 1000);
     } else {
-      focusStatus.textContent = 'Focus';
+      focusStatus.textContent = t('focus');
       clearInterval(timerInterval);
     }
   };
@@ -469,8 +498,8 @@ function renderDashboard(storage) {
     return section;
   };
 
-  dashboard.appendChild(createSection('Wellbeing', wellbeingReminders, 'wellbeing'));
-  dashboard.appendChild(createSection('Work Schedule', workReminders, 'workSchedule'));
+  dashboard.appendChild(createSection(t('wellbeing'), wellbeingReminders, 'wellbeing'));
+  dashboard.appendChild(createSection(t('workSchedule'), workReminders, 'workSchedule'));
 }
 
 /**
@@ -510,15 +539,16 @@ function formatNextReminder(ts) {
   }
 
   const target = new Date(ts);
-  const time = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const locale = getLocale();
+  const time = target.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const now = new Date();
-  if (target.toDateString() === now.toDateString()) return `today at ${time}`;
+  if (target.toDateString() === now.toDateString()) return t('todayAt', { time });
 
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
-  if (target.toDateString() === tomorrow.toDateString()) return `tomorrow at ${time}`;
+  if (target.toDateString() === tomorrow.toDateString()) return t('tomorrowAt', { time });
 
-  return `${target.toLocaleDateString([], { weekday: 'short' })} at ${time}`;
+  return `${target.toLocaleDateString(locale, { weekday: 'short' })} ${time}`;
 }
 
 /**
@@ -531,7 +561,7 @@ async function refreshNextReminderLabel(card) {
 
   const reminderId = card.dataset.reminderId;
   if (!card.querySelector('.toggle input').checked) {
-    el.textContent = 'Off';
+    el.textContent = t('off');
     el.classList.remove('live');
     return;
   }
@@ -547,7 +577,7 @@ async function refreshNextReminderLabel(card) {
   if (times.length === 0) {
     // Enabled but no alarm scheduled — master toggle is off, or the
     // background is mid-reschedule; the periodic refresh will catch up.
-    el.textContent = 'Paused';
+    el.textContent = t('paused');
     el.classList.remove('live');
     return;
   }
@@ -593,33 +623,33 @@ function createReminderCard(reminder, stats) {
     <div class="card-expanded">
       <div class="expanded-content">
         <div class="setting-row">
-          <label>Next reminder</label>
+          <label>${t('nextReminder')}</label>
           <span class="next-reminder-value">–</span>
         </div>
         ${reminder.type === 'interval' ? `
           <div class="setting-row">
-            <label>Interval (minutes)</label>
+            <label>${t('intervalMinutes')}</label>
             <input type="number" class="interval-input" value="${reminder.intervalMinutes}" min="1">
           </div>
           <div class="action-row">
-            <button class="primary log-btn">${reminder.id === 'water' ? '+ Log Water' : 'Mark as Done'}</button>
-            <button class="secondary save-btn">Save</button>
+            <button class="primary log-btn">${reminder.id === 'water' ? t('logWater') : t('markDone')}</button>
+            <button class="secondary save-btn">${t('save')}</button>
           </div>
         ` : `
           <div class="setting-row">
-            <label>Time</label>
+            <label>${t('time')}</label>
             <input type="time" class="time-input" value="${reminder.timeOfDay}">
           </div>
           <div class="setting-row">
-            <label>Workdays</label>
+            <label>${t('workdays')}</label>
             <div class="weekday-selector">
-              ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => `
+              ${getWeekdays().map((day, i) => `
                 <button class="day-btn ${reminder.workdays.includes(i) ? 'active' : ''}" data-day="${i}">${day}</button>
               `).join('')}
             </div>
           </div>
           <div class="action-row">
-            <button class="primary save-btn">Update Schedule</button>
+            <button class="primary save-btn">${t('updateSchedule')}</button>
           </div>
         `}
       </div>
@@ -683,7 +713,7 @@ function createReminderCard(reminder, stats) {
         const selectedDays = Array.from(card.querySelectorAll('.day-btn.active')).map(btn => parseInt(btn.dataset.day));
         
         if (selectedDays.length === 0) {
-          alert('Please select at least one workday.');
+          alert(t('selectWorkday'));
           return;
         }
         updates.workdays = selectedDays;
@@ -698,7 +728,7 @@ function createReminderCard(reminder, stats) {
       setTimeout(() => refreshNextReminderLabel(card), 400);
 
       const originalText = saveBtn.textContent;
-      saveBtn.textContent = 'Saved!';
+      saveBtn.textContent = t('saved');
       setTimeout(() => saveBtn.textContent = originalText, 1500);
     });
   }

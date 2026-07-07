@@ -1,0 +1,331 @@
+/**
+ * Runtime translations for the popup UI and background notifications.
+ *
+ * Chrome's _locales i18n follows the browser language and cannot be
+ * switched from a setting, so translations live here and the active
+ * language is read from storage (settings.language).
+ */
+
+export const LANGUAGES = {
+  en: 'English',
+  ar: 'العربية',
+  hi: 'हिन्दी',
+  ja: '日本語',
+  kn: 'ಕನ್ನಡ'
+};
+
+const LOCALES = {
+  en: undefined, // browser default
+  ar: 'ar',
+  hi: 'hi-IN',
+  ja: 'ja-JP',
+  kn: 'kn-IN'
+};
+
+const MESSAGES = {
+  en: {
+    weekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    wellbeing: 'Wellbeing',
+    workSchedule: 'Work Schedule',
+    quickNotes: 'Quick Notes',
+    settings: 'Settings',
+    masterToggle: 'Master Toggle',
+    darkMode: 'Dark Mode',
+    sound: 'Sound',
+    language: 'Language',
+    exportJson: 'Export JSON',
+    resetData: 'Reset Data',
+    focus: 'Focus',
+    custom: 'Custom',
+    start: 'Start',
+    end: 'End',
+    minPlaceholder: 'min',
+    nextReminder: 'Next reminder',
+    intervalMinutes: 'Interval (minutes)',
+    time: 'Time',
+    workdays: 'Workdays',
+    logWater: '+ Log Water',
+    markDone: 'Mark as Done',
+    markAllDone: 'Mark All Done',
+    save: 'Save',
+    saved: 'Saved!',
+    updateSchedule: 'Update Schedule',
+    off: 'Off',
+    paused: 'Paused',
+    todayAt: 'today at {time}',
+    tomorrowAt: 'tomorrow at {time}',
+    noNotes: 'No notes yet. Tap + to add one.',
+    notePlaceholder: 'Write your note...',
+    selectWorkday: 'Please select at least one workday.',
+    confirmReset: 'Are you sure you want to reset all data? This cannot be undone.',
+    multipleTitle: 'Rhythm: Multiple Reminders',
+    timeFor: "It's time for your {name} reminder.",
+    clickToSkip: 'Click to skip',
+    snooze5: 'Snooze (5m)',
+    skip: 'Skip',
+    focusDoneTitle: 'Focus Session Complete 🎉',
+    focusDoneMsg: 'Great work — your {minutes}-minute focus session is done. Reminders will now resume.',
+    focusDoneFallback: 'Your focus session has completed. Reminders will now resume.',
+    'reminder.water': 'Water',
+    'reminder.posture': 'Posture',
+    'reminder.break': 'Break',
+    'reminder.eye': 'Eye Rest',
+    'reminder.stand': 'Stand Up',
+    'reminder.stretch': 'Stretch',
+    'reminder.breathing': 'Breathing',
+    'reminder.workStart': 'Work Start',
+    'reminder.workLunch': 'Lunch Break',
+    'reminder.workEnd': 'Work End'
+  },
+  ar: {
+    weekdays: ['أح', 'إث', 'ثل', 'أر', 'خم', 'جم', 'سب'],
+    wellbeing: 'العافية',
+    workSchedule: 'جدول العمل',
+    quickNotes: 'ملاحظات سريعة',
+    settings: 'الإعدادات',
+    masterToggle: 'التبديل الرئيسي',
+    darkMode: 'الوضع الداكن',
+    sound: 'الصوت',
+    language: 'اللغة',
+    exportJson: 'تصدير JSON',
+    resetData: 'إعادة تعيين البيانات',
+    focus: 'تركيز',
+    custom: 'مخصص',
+    start: 'ابدأ',
+    end: 'إنهاء',
+    minPlaceholder: 'دقيقة',
+    nextReminder: 'التذكير التالي',
+    intervalMinutes: 'الفاصل الزمني (دقائق)',
+    time: 'الوقت',
+    workdays: 'أيام العمل',
+    logWater: '+ سجّل الماء',
+    markDone: 'وضع علامة تم',
+    markAllDone: 'وضع علامة تم للكل',
+    save: 'حفظ',
+    saved: 'تم الحفظ!',
+    updateSchedule: 'تحديث الجدول',
+    off: 'متوقف',
+    paused: 'متوقف مؤقتًا',
+    todayAt: 'اليوم في {time}',
+    tomorrowAt: 'غدًا في {time}',
+    noNotes: 'لا توجد ملاحظات بعد. اضغط + للإضافة.',
+    notePlaceholder: 'اكتب ملاحظتك...',
+    selectWorkday: 'يرجى اختيار يوم عمل واحد على الأقل.',
+    confirmReset: 'هل أنت متأكد من إعادة تعيين جميع البيانات؟ لا يمكن التراجع عن هذا.',
+    multipleTitle: 'Rhythm: تذكيرات متعددة',
+    timeFor: 'حان وقت تذكير {name}.',
+    clickToSkip: 'انقر للتخطي',
+    snooze5: 'غفوة (5 د)',
+    skip: 'تخطي',
+    focusDoneTitle: 'اكتملت جلسة التركيز 🎉',
+    focusDoneMsg: 'عمل رائع — انتهت جلسة تركيزك لمدة {minutes} دقيقة. ستستأنف التذكيرات الآن.',
+    focusDoneFallback: 'اكتملت جلسة التركيز. ستستأنف التذكيرات الآن.',
+    'reminder.water': 'الماء',
+    'reminder.posture': 'الوضعية',
+    'reminder.break': 'استراحة',
+    'reminder.eye': 'راحة العين',
+    'reminder.stand': 'الوقوف',
+    'reminder.stretch': 'تمدد',
+    'reminder.breathing': 'تنفس',
+    'reminder.workStart': 'بداية العمل',
+    'reminder.workLunch': 'استراحة الغداء',
+    'reminder.workEnd': 'نهاية العمل'
+  },
+  hi: {
+    weekdays: ['र', 'सो', 'मं', 'बु', 'गु', 'शु', 'श'],
+    wellbeing: 'स्वास्थ्य',
+    workSchedule: 'कार्य अनुसूची',
+    quickNotes: 'त्वरित नोट्स',
+    settings: 'सेटिंग्स',
+    masterToggle: 'मास्टर स्विच',
+    darkMode: 'डार्क मोड',
+    sound: 'ध्वनि',
+    language: 'भाषा',
+    exportJson: 'JSON निर्यात',
+    resetData: 'डेटा रीसेट करें',
+    focus: 'फ़ोकस',
+    custom: 'कस्टम',
+    start: 'शुरू करें',
+    end: 'समाप्त',
+    minPlaceholder: 'मिनट',
+    nextReminder: 'अगला रिमाइंडर',
+    intervalMinutes: 'अंतराल (मिनट)',
+    time: 'समय',
+    workdays: 'कार्य दिवस',
+    logWater: '+ पानी दर्ज करें',
+    markDone: 'पूर्ण चिह्नित करें',
+    markAllDone: 'सभी पूर्ण चिह्नित करें',
+    save: 'सहेजें',
+    saved: 'सहेज लिया!',
+    updateSchedule: 'अनुसूची अपडेट करें',
+    off: 'बंद',
+    paused: 'रुका हुआ',
+    todayAt: 'आज {time}',
+    tomorrowAt: 'कल {time}',
+    noNotes: 'अभी कोई नोट नहीं। जोड़ने के लिए + दबाएं।',
+    notePlaceholder: 'अपना नोट लिखें...',
+    selectWorkday: 'कृपया कम से कम एक कार्य दिवस चुनें।',
+    confirmReset: 'क्या आप सभी डेटा रीसेट करना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।',
+    multipleTitle: 'Rhythm: कई रिमाइंडर',
+    timeFor: '{name} रिमाइंडर का समय हो गया।',
+    clickToSkip: 'छोड़ने के लिए क्लिक करें',
+    snooze5: 'स्नूज़ (5 मि)',
+    skip: 'छोड़ें',
+    focusDoneTitle: 'फ़ोकस सत्र पूर्ण 🎉',
+    focusDoneMsg: 'बहुत बढ़िया — आपका {minutes} मिनट का फ़ोकस सत्र पूरा हुआ। रिमाइंडर अब फिर से शुरू होंगे।',
+    focusDoneFallback: 'आपका फ़ोकस सत्र पूरा हुआ। रिमाइंडर अब फिर से शुरू होंगे।',
+    'reminder.water': 'पानी',
+    'reminder.posture': 'मुद्रा',
+    'reminder.break': 'ब्रेक',
+    'reminder.eye': 'आंखों का आराम',
+    'reminder.stand': 'खड़े हों',
+    'reminder.stretch': 'स्ट्रेचिंग',
+    'reminder.breathing': 'श्वास',
+    'reminder.workStart': 'कार्य आरंभ',
+    'reminder.workLunch': 'लंच ब्रेक',
+    'reminder.workEnd': 'कार्य समाप्ति'
+  },
+  ja: {
+    weekdays: ['日', '月', '火', '水', '木', '金', '土'],
+    wellbeing: 'ウェルビーイング',
+    workSchedule: '勤務スケジュール',
+    quickNotes: 'クイックメモ',
+    settings: '設定',
+    masterToggle: 'マスタースイッチ',
+    darkMode: 'ダークモード',
+    sound: 'サウンド',
+    language: '言語',
+    exportJson: 'JSONをエクスポート',
+    resetData: 'データをリセット',
+    focus: '集中',
+    custom: 'カスタム',
+    start: '開始',
+    end: '終了',
+    minPlaceholder: '分',
+    nextReminder: '次のリマインダー',
+    intervalMinutes: '間隔（分）',
+    time: '時刻',
+    workdays: '勤務日',
+    logWater: '+ 水を記録',
+    markDone: '完了にする',
+    markAllDone: 'すべて完了にする',
+    save: '保存',
+    saved: '保存しました！',
+    updateSchedule: 'スケジュールを更新',
+    off: 'オフ',
+    paused: '一時停止中',
+    todayAt: '今日 {time}',
+    tomorrowAt: '明日 {time}',
+    noNotes: 'メモはまだありません。＋で追加できます。',
+    notePlaceholder: 'メモを書く...',
+    selectWorkday: '勤務日を少なくとも1日選択してください。',
+    confirmReset: 'すべてのデータをリセットしますか？この操作は元に戻せません。',
+    multipleTitle: 'Rhythm: 複数のリマインダー',
+    timeFor: '{name}の時間です。',
+    clickToSkip: 'クリックでスキップ',
+    snooze5: 'スヌーズ（5分）',
+    skip: 'スキップ',
+    focusDoneTitle: '集中セッション完了 🎉',
+    focusDoneMsg: 'お疲れさまでした。{minutes}分の集中セッションが終了しました。リマインダーを再開します。',
+    focusDoneFallback: '集中セッションが終了しました。リマインダーを再開します。',
+    'reminder.water': '水分補給',
+    'reminder.posture': '姿勢',
+    'reminder.break': '休憩',
+    'reminder.eye': '目の休憩',
+    'reminder.stand': '立ち上がる',
+    'reminder.stretch': 'ストレッチ',
+    'reminder.breathing': '呼吸',
+    'reminder.workStart': '勤務開始',
+    'reminder.workLunch': '昼休み',
+    'reminder.workEnd': '勤務終了'
+  },
+  kn: {
+    weekdays: ['ಭಾ', 'ಸೋ', 'ಮಂ', 'ಬು', 'ಗು', 'ಶು', 'ಶ'],
+    wellbeing: 'ಯೋಗಕ್ಷೇಮ',
+    workSchedule: 'ಕೆಲಸದ ವೇಳಾಪಟ್ಟಿ',
+    quickNotes: 'ತ್ವರಿತ ಟಿಪ್ಪಣಿಗಳು',
+    settings: 'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
+    masterToggle: 'ಮುಖ್ಯ ಸ್ವಿಚ್',
+    darkMode: 'ಡಾರ್ಕ್ ಮೋಡ್',
+    sound: 'ಧ್ವನಿ',
+    language: 'ಭಾಷೆ',
+    exportJson: 'JSON ರಫ್ತು',
+    resetData: 'ಡೇಟಾ ಮರುಹೊಂದಿಸಿ',
+    focus: 'ಫೋಕಸ್',
+    custom: 'ಕಸ್ಟಮ್',
+    start: 'ಪ್ರಾರಂಭಿಸಿ',
+    end: 'ಮುಗಿಸಿ',
+    minPlaceholder: 'ನಿಮಿಷ',
+    nextReminder: 'ಮುಂದಿನ ಜ್ಞಾಪನೆ',
+    intervalMinutes: 'ಮಧ್ಯಂತರ (ನಿಮಿಷಗಳು)',
+    time: 'ಸಮಯ',
+    workdays: 'ಕೆಲಸದ ದಿನಗಳು',
+    logWater: '+ ನೀರು ದಾಖಲಿಸಿ',
+    markDone: 'ಮುಗಿದಿದೆ ಎಂದು ಗುರುತಿಸಿ',
+    markAllDone: 'ಎಲ್ಲವನ್ನೂ ಮುಗಿದಿದೆ ಎಂದು ಗುರುತಿಸಿ',
+    save: 'ಉಳಿಸಿ',
+    saved: 'ಉಳಿಸಲಾಗಿದೆ!',
+    updateSchedule: 'ವೇಳಾಪಟ್ಟಿ ನವೀಕರಿಸಿ',
+    off: 'ಆಫ್',
+    paused: 'ವಿರಾಮ',
+    todayAt: 'ಇಂದು {time}',
+    tomorrowAt: 'ನಾಳೆ {time}',
+    noNotes: 'ಇನ್ನೂ ಟಿಪ್ಪಣಿಗಳಿಲ್ಲ. ಸೇರಿಸಲು + ಒತ್ತಿರಿ.',
+    notePlaceholder: 'ನಿಮ್ಮ ಟಿಪ್ಪಣಿ ಬರೆಯಿರಿ...',
+    selectWorkday: 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಕೆಲಸದ ದಿನವನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
+    confirmReset: 'ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಮರುಹೊಂದಿಸಬೇಕೆ? ಇದನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗುವುದಿಲ್ಲ.',
+    multipleTitle: 'Rhythm: ಹಲವು ಜ್ಞಾಪನೆಗಳು',
+    timeFor: '{name} ಜ್ಞಾಪನೆಯ ಸಮಯವಾಗಿದೆ.',
+    clickToSkip: 'ಬಿಟ್ಟುಬಿಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ',
+    snooze5: 'ಸ್ನೂಜ್ (5 ನಿ)',
+    skip: 'ಬಿಟ್ಟುಬಿಡಿ',
+    focusDoneTitle: 'ಫೋಕಸ್ ಸೆಷನ್ ಪೂರ್ಣ 🎉',
+    focusDoneMsg: 'ಚೆನ್ನಾಗಿದೆ — ನಿಮ್ಮ {minutes} ನಿಮಿಷದ ಫೋಕಸ್ ಸೆಷನ್ ಮುಗಿದಿದೆ. ಜ್ಞಾಪನೆಗಳು ಈಗ ಮುಂದುವರಿಯುತ್ತವೆ.',
+    focusDoneFallback: 'ನಿಮ್ಮ ಫೋಕಸ್ ಸೆಷನ್ ಮುಗಿದಿದೆ. ಜ್ಞಾಪನೆಗಳು ಈಗ ಮುಂದುವರಿಯುತ್ತವೆ.',
+    'reminder.water': 'ನೀರು',
+    'reminder.posture': 'ಭಂಗಿ',
+    'reminder.break': 'ವಿರಾಮ',
+    'reminder.eye': 'ಕಣ್ಣಿನ ವಿಶ್ರಾಂತಿ',
+    'reminder.stand': 'ಎದ್ದು ನಿಲ್ಲಿ',
+    'reminder.stretch': 'ಸ್ಟ್ರೆಚ್',
+    'reminder.breathing': 'ಉಸಿರಾಟ',
+    'reminder.workStart': 'ಕೆಲಸ ಪ್ರಾರಂಭ',
+    'reminder.workLunch': 'ಊಟದ ವಿರಾಮ',
+    'reminder.workEnd': 'ಕೆಲಸ ಮುಕ್ತಾಯ'
+  }
+};
+
+let currentLang = 'en';
+
+export function setLanguage(lang) {
+  currentLang = MESSAGES[lang] ? lang : 'en';
+}
+
+export function getLanguage() {
+  return currentLang;
+}
+
+export function isRTL() {
+  return currentLang === 'ar';
+}
+
+/** Locale string for toLocaleTimeString/toLocaleDateString. */
+export function getLocale() {
+  return LOCALES[currentLang];
+}
+
+/** Translates a key, substituting {placeholders} from vars. */
+export function t(key, vars = {}) {
+  const msg = MESSAGES[currentLang][key] ?? MESSAGES.en[key] ?? key;
+  if (typeof msg !== 'string') return msg;
+  return msg.replace(/\{(\w+)\}/g, (_, name) => (name in vars ? vars[name] : `{${name}}`));
+}
+
+/** Single-letter weekday labels, Sunday-first (matches Date.getDay()). */
+export function getWeekdays() {
+  return MESSAGES[currentLang].weekdays || MESSAGES.en.weekdays;
+}
+
+export function getReminderLabel(id) {
+  return t(`reminder.${id}`);
+}
