@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { calculateNextFixedTimestamp } from '../src/background/reminder-engine.js';
+import { calculateNextFixedTimestamp, handleAlarm } from '../src/background/reminder-engine.js';
 
 describe('calculateNextFixedTimestamp', () => {
   afterEach(() => {
@@ -80,5 +80,72 @@ describe('calculateNextFixedTimestamp', () => {
 
     const result = calculateNextFixedTimestamp('09:00', []);
     expect(result).toBeGreaterThan(Date.now());
+  });
+});
+
+describe('handleAlarm — fixed-time rescheduling', () => {
+  let createdAlarms;
+  let originalGet;
+  let originalCreate;
+
+  const makeStorage = (settingsOverrides = {}) => ({
+    settings: { masterEnabled: true, focusUntil: null, soundEnabled: false, ...settingsOverrides },
+    reminders: {
+      workStart: {
+        id: 'workStart',
+        enabled: true,
+        type: 'fixedTime',
+        timeOfDay: '09:00',
+        workdays: [0, 1, 2, 3, 4, 5, 6]
+      }
+    },
+    stats: {},
+    logs: []
+  });
+
+  beforeEach(() => {
+    createdAlarms = [];
+    originalGet = chrome.storage.local.get;
+    originalCreate = chrome.alarms.create;
+    chrome.alarms.create = async (name, info) => {
+      createdAlarms.push({ name, info });
+    };
+  });
+
+  afterEach(() => {
+    chrome.storage.local.get = originalGet;
+    chrome.alarms.create = originalCreate;
+  });
+
+  it('reschedules the next occurrence even when suppressed by Focus Mode', async () => {
+    const data = makeStorage({ focusUntil: Date.now() + 60 * 60 * 1000 });
+    chrome.storage.local.get = async () => ({ rhythmData: data });
+
+    await handleAlarm({ name: 'workStart' });
+
+    const rescheduled = createdAlarms.find(a => a.name === 'workStart');
+    expect(rescheduled).toBeDefined();
+    expect(rescheduled.info.when).toBeGreaterThan(Date.now());
+  });
+
+  it('reschedules the next occurrence on a normal trigger', async () => {
+    const data = makeStorage();
+    chrome.storage.local.get = async () => ({ rhythmData: data });
+
+    await handleAlarm({ name: 'workStart' });
+
+    const rescheduled = createdAlarms.find(a => a.name === 'workStart');
+    expect(rescheduled).toBeDefined();
+    expect(rescheduled.info.when).toBeGreaterThan(Date.now());
+  });
+
+  it('does not reschedule a disabled reminder', async () => {
+    const data = makeStorage();
+    data.reminders.workStart.enabled = false;
+    chrome.storage.local.get = async () => ({ rhythmData: data });
+
+    await handleAlarm({ name: 'workStart' });
+
+    expect(createdAlarms.find(a => a.name === 'workStart')).toBeUndefined();
   });
 });

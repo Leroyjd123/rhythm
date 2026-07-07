@@ -1,4 +1,4 @@
-import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage } from '/src/shared/storage.js';
+import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage, getReminderLabel } from '/src/shared/storage.js';
 
 /**
  * Debounce helper to limit storage writes
@@ -61,6 +61,20 @@ async function init() {
     if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
 
     renderDashboard(storage);
+    startNextReminderTicker();
+
+    // Live-sync data changed outside this popup (e.g. "Mark as Done" on a
+    // notification is handled by the background worker) so counters update
+    // while the popup is open. Also keeps this snapshot's stats/logs fresh,
+    // so the popup's own debounced writes can't clobber background updates.
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.rhythmData?.newValue) return;
+      const newData = changes.rhythmData.newValue;
+      if (newData.stats) storage.stats = newData.stats;
+      if (newData.logs) storage.logs = newData.logs;
+      updateCardCounters(storage);
+    });
+
     initFocusMode(storage);
     initNotes(storage);
     initAdvanced(storage);
@@ -304,16 +318,20 @@ function initNotes(storage) {
 function initFocusMode(storage) {
   const focusToggle = document.getElementById('focus-toggle');
   const focusStatus = document.getElementById('focus-status');
+  const chipsContainer = document.getElementById('focus-chips');
+  const customRow = document.getElementById('focus-custom');
+  const customInput = document.getElementById('focus-custom-input');
   let timerInterval = null;
 
   const updateUI = () => {
-    const now = Date.now();
     const focusUntil = storage.settings.focusUntil;
+    const active = focusUntil && Date.now() < focusUntil;
 
-    if (focusUntil && now < focusUntil) {
-      focusToggle.textContent = 'End Focus';
-      focusToggle.classList.add('active');
-      
+    chipsContainer.hidden = !!active;
+    customRow.hidden = true;
+    focusToggle.hidden = !active;
+
+    if (active) {
       const updateTimer = () => {
         const remaining = Math.max(0, focusUntil - Date.now());
         if (remaining === 0) {
@@ -330,19 +348,57 @@ function initFocusMode(storage) {
       clearInterval(timerInterval);
       timerInterval = setInterval(updateTimer, 1000);
     } else {
-      focusToggle.textContent = 'Focus 1h';
-      focusToggle.classList.remove('active');
-      focusStatus.textContent = 'Normal Mode';
+      focusStatus.textContent = 'Focus';
       clearInterval(timerInterval);
     }
   };
 
-  focusToggle.addEventListener('click', async () => {
-    if (storage.settings.focusUntil && Date.now() < storage.settings.focusUntil) {
-      storage.settings.focusUntil = null;
-    } else {
-      storage.settings.focusUntil = Date.now() + (60 * 60 * 1000); // 1 hour
+  const startFocus = async (minutes) => {
+    storage.settings.focusDurationMinutes = minutes;
+    storage.settings.focusUntil = Date.now() + minutes * 60 * 1000;
+    await setStorage(storage);
+    updateUI();
+  };
+
+  // Duration chips: start a focus session with one click (Pomodoro-style).
+  // The background schedules a focus-end alarm and notifies when it's done.
+  chipsContainer.querySelectorAll('.focus-chip[data-minutes]').forEach(chip => {
+    chip.addEventListener('click', () => startFocus(parseInt(chip.dataset.minutes, 10)));
+  });
+
+  // Custom duration: swap the chips for a minutes input
+  const showCustom = () => {
+    chipsContainer.hidden = true;
+    customRow.hidden = false;
+    customInput.value = storage.settings.focusDurationMinutes || 25;
+    customInput.focus();
+    customInput.select();
+  };
+
+  const hideCustom = () => {
+    customRow.hidden = true;
+    chipsContainer.hidden = false;
+  };
+
+  const startCustom = () => {
+    const minutes = parseInt(customInput.value, 10);
+    if (!minutes || minutes < 1 || minutes > 720) {
+      customInput.focus();
+      return;
     }
+    startFocus(minutes);
+  };
+
+  document.getElementById('focus-custom-btn').addEventListener('click', showCustom);
+  document.getElementById('focus-custom-start').addEventListener('click', startCustom);
+  document.getElementById('focus-custom-cancel').addEventListener('click', hideCustom);
+  customInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') startCustom();
+    if (e.key === 'Escape') hideCustom();
+  });
+
+  focusToggle.addEventListener('click', async () => {
+    storage.settings.focusUntil = null;
     await setStorage(storage);
     updateUI();
   });
@@ -417,13 +473,105 @@ function renderDashboard(storage) {
   dashboard.appendChild(createSection('Work Schedule', workReminders, 'workSchedule'));
 }
 
+/**
+ * Updates each card's daily counter in place (no full re-render, so the
+ * open/expanded card state is preserved). Pops a small bump animation
+ * when a value actually changes.
+ */
+function updateCardCounters(storage) {
+  document.querySelectorAll('#dashboard .card').forEach(card => {
+    const id = card.dataset.reminderId;
+    const stats = storage.stats[id];
+    const counterEl = card.querySelector('.card-counter');
+    if (!counterEl || !stats) return;
+
+    const target = storage.reminders[id]?.metadata?.dailyTarget;
+    const text = `${stats.todayCount}${target ? ` / ${target}` : ''}`;
+    if (counterEl.textContent.trim() !== text) {
+      counterEl.textContent = text;
+      counterEl.classList.remove('bump');
+      void counterEl.offsetWidth; // restart the animation
+      counterEl.classList.add('bump');
+    }
+  });
+}
+
+/**
+ * Formats the timestamp of the next reminder occurrence for display.
+ * Under an hour it renders a live MM:SS countdown (updated every second
+ * by the ticker); beyond that it falls back to a readable time/day.
+ */
+function formatNextReminder(ts) {
+  const totalSecs = Math.max(0, Math.round((ts - Date.now()) / 1000));
+  if (totalSecs < 3600) {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  const target = new Date(ts);
+  const time = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const now = new Date();
+  if (target.toDateString() === now.toDateString()) return `today at ${time}`;
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (target.toDateString() === tomorrow.toDateString()) return `tomorrow at ${time}`;
+
+  return `${target.toLocaleDateString([], { weekday: 'short' })} at ${time}`;
+}
+
+/**
+ * Reads the reminder's scheduled alarm (and any pending snooze) and
+ * updates the "Next reminder" label on the card.
+ */
+async function refreshNextReminderLabel(card) {
+  const el = card.querySelector('.next-reminder-value');
+  if (!el) return;
+
+  const reminderId = card.dataset.reminderId;
+  if (!card.querySelector('.toggle input').checked) {
+    el.textContent = 'Off';
+    el.classList.remove('live');
+    return;
+  }
+
+  const [main, snooze] = await Promise.all([
+    chrome.alarms.get(reminderId),
+    chrome.alarms.get(`snooze-${reminderId}`)
+  ]);
+  const times = [main, snooze]
+    .filter(a => a && a.scheduledTime > Date.now())
+    .map(a => a.scheduledTime);
+
+  if (times.length === 0) {
+    // Enabled but no alarm scheduled — master toggle is off, or the
+    // background is mid-reschedule; the periodic refresh will catch up.
+    el.textContent = 'Paused';
+    el.classList.remove('live');
+    return;
+  }
+
+  el.textContent = formatNextReminder(Math.min(...times));
+  el.classList.add('live');
+}
+
+function startNextReminderTicker() {
+  const refreshOpenCards = () => {
+    document.querySelectorAll('.card.open').forEach(card => refreshNextReminderLabel(card));
+  };
+  refreshOpenCards();
+  setInterval(refreshOpenCards, 1000);
+}
+
 function createReminderCard(reminder, stats) {
   const card = document.createElement('div');
   card.className = `card ${reminder.id}-card`;
+  card.dataset.reminderId = reminder.id;
   card.tabIndex = 0;
   card.role = 'button';
   card.ariaExpanded = 'false';
-  card.ariaLabel = `Reminder: ${reminder.id}`;
+  card.ariaLabel = `Reminder: ${getReminderLabel(reminder.id)}`;
   
   const hasDailyTarget = reminder.metadata && reminder.metadata.dailyTarget;
   const counterHtml = stats ? `
@@ -435,7 +583,7 @@ function createReminderCard(reminder, stats) {
   card.innerHTML = `
     <div class="card-header">
       <div class="card-icon">${ICONS[reminder.id] || '🔔'}</div>
-      <div class="card-label">${reminder.id.charAt(0).toUpperCase() + reminder.id.slice(1)}</div>
+      <div class="card-label">${getReminderLabel(reminder.id)}</div>
       ${counterHtml}
       <label class="toggle">
         <input type="checkbox" ${reminder.enabled ? 'checked' : ''}>
@@ -444,6 +592,10 @@ function createReminderCard(reminder, stats) {
     </div>
     <div class="card-expanded">
       <div class="expanded-content">
+        <div class="setting-row">
+          <label>Next reminder</label>
+          <span class="next-reminder-value">–</span>
+        </div>
         ${reminder.type === 'interval' ? `
           <div class="setting-row">
             <label>Interval (minutes)</label>
@@ -483,7 +635,9 @@ function createReminderCard(reminder, stats) {
     const enabled = e.target.checked;
     await updateReminder(reminder.id, { enabled });
     // Keep triggerNow: true only for explicit manual enabling
-    chrome.runtime.sendMessage({ action: 'createReminder', reminder: { ...reminder, enabled }, triggerNow: enabled });
+    chrome.runtime.sendMessage({ action: 'createReminder', id: reminder.id, triggerNow: enabled });
+    // Give the background a moment to (re)schedule, then update the label
+    setTimeout(() => refreshNextReminderLabel(card), 400);
   });
 
   const toggleOpen = () => {
@@ -494,9 +648,10 @@ function createReminderCard(reminder, stats) {
         c.ariaExpanded = 'false';
       }
     });
-    
+
     const isOpen = card.classList.toggle('open');
     card.ariaExpanded = isOpen;
+    if (isOpen) refreshNextReminderLabel(card);
   };
 
   // Expand Listener (Card Body)
@@ -534,14 +689,14 @@ function createReminderCard(reminder, stats) {
         updates.workdays = selectedDays;
       }
       
-      const isEnabled = toggleInput.checked;
       await updateReminder(reminder.id, updates);
-      chrome.runtime.sendMessage({ 
-        action: 'createReminder', 
-        reminder: { ...reminder, ...updates, enabled: isEnabled }, 
+      chrome.runtime.sendMessage({
+        action: 'createReminder',
+        id: reminder.id,
         triggerNow: false // Only reschedule without immediate firing
       });
-      
+      setTimeout(() => refreshNextReminderLabel(card), 400);
+
       const originalText = saveBtn.textContent;
       saveBtn.textContent = 'Saved!';
       setTimeout(() => saveBtn.textContent = originalText, 1500);
@@ -559,8 +714,9 @@ function createReminderCard(reminder, stats) {
       }
       storage.stats[reminder.id].todayCount++;
       await setStorage(storage);
-      renderDashboard(storage);
-      
+      // Update counters in place — a full re-render would collapse the card
+      updateCardCounters(storage);
+
       if (reminder.metadata.dailyTarget && storage.stats[reminder.id].todayCount === reminder.metadata.dailyTarget) {
         triggerConfetti();
       }
