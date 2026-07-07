@@ -111,6 +111,27 @@ export const DEFAULT_SCHEMA = {
 };
 
 /**
+ * Human-friendly display names for reminder ids (used in cards and
+ * notifications — never show raw ids like "workStart" to the user).
+ */
+export const REMINDER_LABELS = {
+  water: 'Water',
+  posture: 'Posture',
+  break: 'Break',
+  eye: 'Eye Rest',
+  stand: 'Stand Up',
+  stretch: 'Stretch',
+  breathing: 'Breathing',
+  workStart: 'Work Start',
+  workLunch: 'Lunch Break',
+  workEnd: 'Work End'
+};
+
+export function getReminderLabel(id) {
+  return REMINDER_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+/**
  * Helper to get a YYYY-MM-DD date string in local time.
  * @returns {string}
  */

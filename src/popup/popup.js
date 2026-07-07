@@ -1,4 +1,4 @@
-import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage } from '/src/shared/storage.js';
+import { getStorage, updateReminder, setStorage, getLocalDateString, initializeStorage, getReminderLabel } from '/src/shared/storage.js';
 
 /**
  * Debounce helper to limit storage writes
@@ -319,13 +319,16 @@ function initFocusMode(storage) {
   const focusToggle = document.getElementById('focus-toggle');
   const focusStatus = document.getElementById('focus-status');
   const chipsContainer = document.getElementById('focus-chips');
+  const customRow = document.getElementById('focus-custom');
+  const customInput = document.getElementById('focus-custom-input');
   let timerInterval = null;
 
   const updateUI = () => {
     const focusUntil = storage.settings.focusUntil;
     const active = focusUntil && Date.now() < focusUntil;
 
-    chipsContainer.hidden = active;
+    chipsContainer.hidden = !!active;
+    customRow.hidden = true;
     focusToggle.hidden = !active;
 
     if (active) {
@@ -350,16 +353,48 @@ function initFocusMode(storage) {
     }
   };
 
+  const startFocus = async (minutes) => {
+    storage.settings.focusDurationMinutes = minutes;
+    storage.settings.focusUntil = Date.now() + minutes * 60 * 1000;
+    await setStorage(storage);
+    updateUI();
+  };
+
   // Duration chips: start a focus session with one click (Pomodoro-style).
   // The background schedules a focus-end alarm and notifies when it's done.
-  chipsContainer.querySelectorAll('.focus-chip').forEach(chip => {
-    chip.addEventListener('click', async () => {
-      const minutes = parseInt(chip.dataset.minutes, 10);
-      storage.settings.focusDurationMinutes = minutes;
-      storage.settings.focusUntil = Date.now() + minutes * 60 * 1000;
-      await setStorage(storage);
-      updateUI();
-    });
+  chipsContainer.querySelectorAll('.focus-chip[data-minutes]').forEach(chip => {
+    chip.addEventListener('click', () => startFocus(parseInt(chip.dataset.minutes, 10)));
+  });
+
+  // Custom duration: swap the chips for a minutes input
+  const showCustom = () => {
+    chipsContainer.hidden = true;
+    customRow.hidden = false;
+    customInput.value = storage.settings.focusDurationMinutes || 25;
+    customInput.focus();
+    customInput.select();
+  };
+
+  const hideCustom = () => {
+    customRow.hidden = true;
+    chipsContainer.hidden = false;
+  };
+
+  const startCustom = () => {
+    const minutes = parseInt(customInput.value, 10);
+    if (!minutes || minutes < 1 || minutes > 720) {
+      customInput.focus();
+      return;
+    }
+    startFocus(minutes);
+  };
+
+  document.getElementById('focus-custom-btn').addEventListener('click', showCustom);
+  document.getElementById('focus-custom-start').addEventListener('click', startCustom);
+  document.getElementById('focus-custom-cancel').addEventListener('click', hideCustom);
+  customInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') startCustom();
+    if (e.key === 'Escape') hideCustom();
   });
 
   focusToggle.addEventListener('click', async () => {
@@ -536,7 +571,7 @@ function createReminderCard(reminder, stats) {
   card.tabIndex = 0;
   card.role = 'button';
   card.ariaExpanded = 'false';
-  card.ariaLabel = `Reminder: ${reminder.id}`;
+  card.ariaLabel = `Reminder: ${getReminderLabel(reminder.id)}`;
   
   const hasDailyTarget = reminder.metadata && reminder.metadata.dailyTarget;
   const counterHtml = stats ? `
@@ -548,7 +583,7 @@ function createReminderCard(reminder, stats) {
   card.innerHTML = `
     <div class="card-header">
       <div class="card-icon">${ICONS[reminder.id] || '🔔'}</div>
-      <div class="card-label">${reminder.id.charAt(0).toUpperCase() + reminder.id.slice(1)}</div>
+      <div class="card-label">${getReminderLabel(reminder.id)}</div>
       ${counterHtml}
       <label class="toggle">
         <input type="checkbox" ${reminder.enabled ? 'checked' : ''}>

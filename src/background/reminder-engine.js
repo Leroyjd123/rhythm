@@ -1,4 +1,4 @@
-import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString } from '/src/shared/storage.js';
+import { getStorage, setStorage, ensureDailyStatsReset, getLocalDateString, getReminderLabel } from '/src/shared/storage.js';
 import { logInfo, logError } from '/src/shared/logger.js';
 import { playNotificationSound } from '/src/background/audio.js';
 
@@ -294,31 +294,33 @@ async function dispatchNotification(ids) {
     }
   }
 
-  const label = (id) => id.charAt(0).toUpperCase() + id.slice(1);
   const isMulti = reminderDetails.length > 1;
-  const title = isMulti ? 'Rhythm: Multiple Reminders' : `Rhythm: ${label(reminderDetails[0].id)}`;
+  const title = isMulti ? 'Rhythm: Multiple Reminders' : `Rhythm: ${getReminderLabel(reminderDetails[0].id)}`;
   const message = isMulti
-    ? reminderDetails.map(r => `• ${label(r.id)}`).join('\n')
-    : `It's time for your ${reminderDetails[0].id} reminder.`;
+    ? reminderDetails.map(r => `• ${getReminderLabel(r.id)}`).join('\n')
+    : `It's time for your ${getReminderLabel(reminderDetails[0].id)} reminder.`;
+
+  // Work-schedule (fixed-time) reminders have nothing to log, so they get
+  // Snooze + Skip. Interval reminders get Done + Snooze, with body-click
+  // as skip (Chrome allows at most 2 notification buttons).
+  const allFixedTime = reminderDetails.every(r => r.type === 'fixedTime');
   const doneTitle = isMulti
     ? 'Mark All Done'
     : (reminderDetails[0].id === 'water' ? '+ Log Water' : 'Mark as Done');
+  const buttons = allFixedTime
+    ? [{ title: 'Snooze (5m)' }, { title: 'Skip' }]
+    : [{ title: doneTitle }, { title: 'Snooze (5m)' }];
 
   // Encode IDs into notificationId to retrieve them in button handler
   const notificationId = `ids:${ids.join(',')}:${Date.now()}`;
 
-  // Chrome allows at most 2 notification buttons, so "skip" is handled by
-  // clicking the notification body (see onClicked below).
   chrome.notifications.create(notificationId, {
     type: 'basic',
     iconUrl: '/icon128.png',
     title: title,
     message: message,
     contextMessage: 'Click to skip',
-    buttons: [
-      { title: doneTitle },
-      { title: 'Snooze (5m)' }
-    ],
+    buttons: buttons,
     priority: 2,
     requireInteraction: true
   });
@@ -360,20 +362,32 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
       const parts = notifId.split(':');
       const ids = parts[1].split(',');
 
-      if (btnIdx === 0) { // Log/Done
-        const storage = await getStorage();
-        for (const id of ids) {
-          if (!storage.stats[id]) {
-            storage.stats[id] = { todayCount: 0, lastResetDate: getLocalDateString() };
+      // Button layout mirrors dispatchNotification: fixed-time-only groups
+      // show [Snooze, Skip]; anything else shows [Done, Snooze].
+      const storage = await getStorage();
+      const reminders = ids.map(id => storage.reminders[id]).filter(Boolean);
+      const allFixedTime = reminders.length > 0 && reminders.every(r => r.type === 'fixedTime');
+      const action = allFixedTime
+        ? (btnIdx === 0 ? 'snooze' : 'skip')
+        : (btnIdx === 0 ? 'done' : 'snooze');
+
+      if (action === 'done') {
+        for (const reminder of reminders) {
+          // Fixed-time reminders have no daily counter to increment
+          if (reminder.type === 'fixedTime') continue;
+          if (!storage.stats[reminder.id]) {
+            storage.stats[reminder.id] = { todayCount: 0, lastResetDate: getLocalDateString() };
           }
-          storage.stats[id].todayCount++;
+          storage.stats[reminder.id].todayCount++;
         }
         await setStorage(storage);
         logInfo(`Acknowledge Done for: ${ids.join(', ')}`);
-      } else if (btnIdx === 1) { // Snooze
+      } else if (action === 'snooze') {
         for (const id of ids) {
           await handleSnooze(id);
         }
+      } else {
+        logInfo(`Reminder skipped: ${ids.join(', ')}`);
       }
       chrome.notifications.clear(notifId);
     }
