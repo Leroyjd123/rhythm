@@ -420,12 +420,16 @@ function renderDashboard(storage) {
 
 /**
  * Formats the timestamp of the next reminder occurrence for display.
+ * Under an hour it renders a live MM:SS countdown (updated every second
+ * by the ticker); beyond that it falls back to a readable time/day.
  */
 function formatNextReminder(ts) {
-  const diffMs = ts - Date.now();
-  if (diffMs < 60000) return 'less than a minute';
-  const mins = Math.round(diffMs / 60000);
-  if (mins < 60) return `${mins} min left`;
+  const totalSecs = Math.max(0, Math.round((ts - Date.now()) / 1000));
+  if (totalSecs < 3600) {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
 
   const target = new Date(ts);
   const time = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
