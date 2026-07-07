@@ -62,6 +62,19 @@ async function init() {
 
     renderDashboard(storage);
     startNextReminderTicker();
+
+    // Live-sync data changed outside this popup (e.g. "Mark as Done" on a
+    // notification is handled by the background worker) so counters update
+    // while the popup is open. Also keeps this snapshot's stats/logs fresh,
+    // so the popup's own debounced writes can't clobber background updates.
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.rhythmData?.newValue) return;
+      const newData = changes.rhythmData.newValue;
+      if (newData.stats) storage.stats = newData.stats;
+      if (newData.logs) storage.logs = newData.logs;
+      updateCardCounters(storage);
+    });
+
     initFocusMode(storage);
     initNotes(storage);
     initAdvanced(storage);
@@ -419,6 +432,29 @@ function renderDashboard(storage) {
 }
 
 /**
+ * Updates each card's daily counter in place (no full re-render, so the
+ * open/expanded card state is preserved). Pops a small bump animation
+ * when a value actually changes.
+ */
+function updateCardCounters(storage) {
+  document.querySelectorAll('#dashboard .card').forEach(card => {
+    const id = card.dataset.reminderId;
+    const stats = storage.stats[id];
+    const counterEl = card.querySelector('.card-counter');
+    if (!counterEl || !stats) return;
+
+    const target = storage.reminders[id]?.metadata?.dailyTarget;
+    const text = `${stats.todayCount}${target ? ` / ${target}` : ''}`;
+    if (counterEl.textContent.trim() !== text) {
+      counterEl.textContent = text;
+      counterEl.classList.remove('bump');
+      void counterEl.offsetWidth; // restart the animation
+      counterEl.classList.add('bump');
+    }
+  });
+}
+
+/**
  * Formats the timestamp of the next reminder occurrence for display.
  * Under an hour it renders a live MM:SS countdown (updated every second
  * by the ticker); beyond that it falls back to a readable time/day.
@@ -454,6 +490,7 @@ async function refreshNextReminderLabel(card) {
   const reminderId = card.dataset.reminderId;
   if (!card.querySelector('.toggle input').checked) {
     el.textContent = 'Off';
+    el.classList.remove('live');
     return;
   }
 
@@ -469,10 +506,12 @@ async function refreshNextReminderLabel(card) {
     // Enabled but no alarm scheduled — master toggle is off, or the
     // background is mid-reschedule; the periodic refresh will catch up.
     el.textContent = 'Paused';
+    el.classList.remove('live');
     return;
   }
 
   el.textContent = formatNextReminder(Math.min(...times));
+  el.classList.add('live');
 }
 
 function startNextReminderTicker() {
@@ -633,8 +672,9 @@ function createReminderCard(reminder, stats) {
       }
       storage.stats[reminder.id].todayCount++;
       await setStorage(storage);
-      renderDashboard(storage);
-      
+      // Update counters in place — a full re-render would collapse the card
+      updateCardCounters(storage);
+
       if (reminder.metadata.dailyTarget && storage.stats[reminder.id].todayCount === reminder.metadata.dailyTarget) {
         triggerConfetti();
       }

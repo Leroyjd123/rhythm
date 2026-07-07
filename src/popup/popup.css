@@ -210,10 +210,43 @@ input.interval-input, input.time-input {
 }
 
 .next-reminder-value {
+  font-family: 'JetBrains Mono', monospace;
   font-size: var(--text-small);
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+.next-reminder-value.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.next-reminder-value.live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  animation: rhythm-pulse 2s ease-in-out infinite;
+}
+
+@keyframes rhythm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.card-counter.bump {
+  animation: counter-pop 0.35s ease;
+}
+
+@keyframes counter-pop {
+  30% { transform: scale(1.25); }
 }
 
 .action-row {
