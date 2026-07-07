@@ -150,13 +150,21 @@ export async function handleAlarm(alarm) {
   }
 
   if (alarm.name === 'focus-end') {
+    const storage = await getStorage();
+    const minutes = storage?.settings?.focusDurationMinutes;
     chrome.notifications.create('focus-end', {
       type: 'basic',
       iconUrl: '/icon128.png',
-      title: 'Focus Mode Ended',
-      message: 'Your focus session has completed. Reminders will now resume.',
+      title: 'Focus Session Complete 🎉',
+      message: minutes
+        ? `Great work — your ${minutes}-minute focus session is done. Reminders will now resume.`
+        : 'Your focus session has completed. Reminders will now resume.',
+      priority: 2,
       requireInteraction: true
     });
+    if (storage?.settings?.soundEnabled) {
+      await playNotificationSound();
+    }
     return;
   }
 

@@ -23,8 +23,14 @@
       </header>
 
         <div id="focus-banner" class="focus-banner">
-            <span id="focus-status" class="focus-timer">Normal Mode</span>
-            <button id="focus-toggle" class="focus-btn">Focus 1h</button>
+            <span id="focus-status" class="focus-timer">Focus</span>
+            <div id="focus-chips" class="focus-chips" role="group" aria-label="Start a focus session">
+                <button class="focus-chip" data-minutes="15">15m</button>
+                <button class="focus-chip" data-minutes="25">25m</button>
+                <button class="focus-chip" data-minutes="45">45m</button>
+                <button class="focus-chip" data-minutes="60">1h</button>
+            </div>
+            <button id="focus-toggle" class="focus-btn" hidden>End</button>
         </div>
 
         <main id="dashboard">

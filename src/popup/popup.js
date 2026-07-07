@@ -318,16 +318,17 @@ function initNotes(storage) {
 function initFocusMode(storage) {
   const focusToggle = document.getElementById('focus-toggle');
   const focusStatus = document.getElementById('focus-status');
+  const chipsContainer = document.getElementById('focus-chips');
   let timerInterval = null;
 
   const updateUI = () => {
-    const now = Date.now();
     const focusUntil = storage.settings.focusUntil;
+    const active = focusUntil && Date.now() < focusUntil;
 
-    if (focusUntil && now < focusUntil) {
-      focusToggle.textContent = 'End Focus';
-      focusToggle.classList.add('active');
-      
+    chipsContainer.hidden = active;
+    focusToggle.hidden = !active;
+
+    if (active) {
       const updateTimer = () => {
         const remaining = Math.max(0, focusUntil - Date.now());
         if (remaining === 0) {
@@ -344,19 +345,25 @@ function initFocusMode(storage) {
       clearInterval(timerInterval);
       timerInterval = setInterval(updateTimer, 1000);
     } else {
-      focusToggle.textContent = 'Focus 1h';
-      focusToggle.classList.remove('active');
-      focusStatus.textContent = 'Normal Mode';
+      focusStatus.textContent = 'Focus';
       clearInterval(timerInterval);
     }
   };
 
+  // Duration chips: start a focus session with one click (Pomodoro-style).
+  // The background schedules a focus-end alarm and notifies when it's done.
+  chipsContainer.querySelectorAll('.focus-chip').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const minutes = parseInt(chip.dataset.minutes, 10);
+      storage.settings.focusDurationMinutes = minutes;
+      storage.settings.focusUntil = Date.now() + minutes * 60 * 1000;
+      await setStorage(storage);
+      updateUI();
+    });
+  });
+
   focusToggle.addEventListener('click', async () => {
-    if (storage.settings.focusUntil && Date.now() < storage.settings.focusUntil) {
-      storage.settings.focusUntil = null;
-    } else {
-      storage.settings.focusUntil = Date.now() + (60 * 60 * 1000); // 1 hour
-    }
+    storage.settings.focusUntil = null;
     await setStorage(storage);
     updateUI();
   });

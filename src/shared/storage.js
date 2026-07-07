@@ -3,6 +3,7 @@ export const DEFAULT_SCHEMA = {
   settings: {
     theme: 'light',
     focusUntil: null,
+    focusDurationMinutes: 25,
     timezone: 'auto',
     masterEnabled: true,
     soundEnabled: true,

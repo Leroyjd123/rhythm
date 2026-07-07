@@ -331,6 +331,26 @@ button.danger-text:hover {
   letter-spacing: 0.05em;
 }
 
+.focus-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.focus-chip {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: var(--text-tiny);
+  font-weight: 700;
+  transition: background 0.2s;
+}
+
+.focus-chip:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Notes */
 .notes-header-actions {
   display: flex;
